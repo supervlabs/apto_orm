@@ -1,0 +1,70 @@
+service: fee-free
+
+package:
+  individually: true
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  stage: ${opt:stage, "dev"}
+  region: ap-northeast-2
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - "arn:aws:dynamodb:${aws:region}:*:table/Payers-${self:custom.network}"
+
+functions:
+  app:
+    handler: index.handler
+    environment:
+      NETWORK: ${self:custom.network}
+      MAX_PAYERS: ${self:custom.maxPayers}
+    events:
+      - http: ANY /
+      - http: "ANY /{proxy+}"
+  # hello:
+  #   handler: index.hello
+  #   events:
+  #     - http:
+  #         path: hello
+  #         method: get
+
+resources:
+  Resources:
+    Payers:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Payers-${self:custom.network}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: N
+          - AttributeName: pubkey
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        GlobalSecondaryIndexes:
+          - IndexName: PubkeyIndex
+            KeySchema:
+              - AttributeName: pubkey
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+plugins:
+  - serverless-plugin-typescript
+
+custom:
+  network: testnet
+  maxPayers: 3
+  serverlessPluginTypescript:
+    tsConfigFileLocation: "./tsconfig.json"
