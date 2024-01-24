@@ -1,20 +1,5 @@
 import 'reflect-metadata';
-import {
-  MoveType,
-  MoveValue,
-  AccountAddress,
-  AccountAddressInput,
-  Hex,
-  HexInput,
-  Account,
-  InputGenerateTransactionPayloadData,
-  InputGenerateTransactionOptions,
-  PendingTransactionResponse,
-  AnyRawTransaction,
-  SimpleTransaction,
-  MultiAgentTransaction,
-  AccountAuthenticator,
-} from '@aptos-labs/ts-sdk';
+import { AccountAddress } from '@aptos-labs/ts-sdk';
 import {
   OrmClassMetadata,
   OrmObjectConfig,
@@ -22,6 +7,8 @@ import {
   OrmFieldConfig,
   OrmTokenConfig,
   OrmObjectLiteral,
+  OrmFieldCommonMoveType,
+  OrmFieldTypeString,
 } from './types';
 import { camelToSnake, loadAddresses, toAddress } from './utilities';
 
@@ -225,30 +212,27 @@ export function OrmField(config?: OrmFieldConfig): PropertyDecorator {
   return (target: Object, key: string) => {
     // let descriptor = Object.getOwnPropertyDescriptor(target, key);
     if (!config) config = {};
-    const type_class = Reflect.getMetadata('design:type', target, key);
-    const type = toMoveType(type_class.name, config.type);
-    console.log('OrmField type = ', type_class.name, config.type, type);
-    const field: OrmFieldData = {
-      name: config.name || camelToSnake(key),
-      type: type,
-      property_key: key,
-      property_type: type_class.name,
-      writable: (() => {
-        if (config.constant) {
-          return false;
-        }
-        return config.timestamp ? false : true;
-      })(),
-      immutable: config.immutable || false,
-      constant: config.constant,
-      index: config.index || false,
-      token_property: config.token_property || false,
-      timestamp: config.timestamp || false,
-    };
+    const tsTypeClass = Reflect.getMetadata('design:type', target, key);
+    const typeInMove = toTypeStringInMove(tsTypeClass.name, config.type);
+    const field = new OrmFieldData();
+    field.name = config.name || camelToSnake(key);
+    field.type = typeInMove;
+    field.property_key = key;
+    field.property_type = tsTypeClass.name;
+    field.writable = (() => {
+      if (config.constant) {
+        return false;
+      }
+      return config.timestamp ? false : true;
+    })();
+    field.immutable = config.immutable || false;
+    field.constant = config.constant;
+    field.index = config.index || false;
+    field.token_property = config.token_property || false;
+    field.timestamp = config.timestamp || false;
+
     const fields: OrmFieldData[] = Reflect.getOwnMetadata(ormObjectFieldsKey, target) || [];
-    if (!fields.includes(field)) {
-      fields.push(field);
-    }
+    fields.push(field);
     Reflect.defineMetadata(ormObjectFieldsKey, fields, target);
     Reflect.defineMetadata(ormObjectKey, field, target, key);
     // let writable = true;
@@ -275,34 +259,40 @@ export const OrmIndexField = (config?: OrmFieldConfig) => {
   return OrmField(config);
 };
 
-function toMoveType(typeName: string, typeHelp?: MoveType) {
-  if (typeHelp) {
-    switch (typeHelp) {
+function toTypeStringInMove(typeInTs: string, typeInMove?: OrmFieldCommonMoveType): OrmFieldTypeString {
+  if (typeInMove) {
+    switch (typeInMove) {
+      case 'address':
+        return 'address';
       case 'string':
       case 'String':
-        if (typeName !== 'String') throw new Error('Type mismatch');
+        if (typeInTs !== 'String') throw new Error('Type mismatch');
         return 'string::String';
-      case 'bool':
-        if (typeName !== 'Boolean') throw new Error('Type mismatch');
-        return 'bool';
       case 'u8':
       case 'u16':
       case 'u32':
-        if (typeName !== 'Number') throw new Error('Type mismatch');
-        return typeHelp;
+        if (typeInTs !== 'Number') throw new Error('Type mismatch');
+        return typeInMove;
       case 'u64':
-        if (typeName === 'Date') return typeHelp;
-        if (typeName !== 'Bigint' && typeName !== 'Number') throw new Error('Type mismatch');
-        return typeHelp;
+        if (typeInTs === 'Date') return typeInMove;
+        if (typeInTs !== 'Bigint' && typeInTs !== 'Number') throw new Error('Type mismatch');
+        return typeInMove;
       case 'u128':
       case 'u256':
-        if (typeName !== 'String') throw new Error('Type mismatch');
-        return typeHelp;
-      case 'address':
-        return 'address';
+        if (typeInTs !== 'String') throw new Error('Type mismatch');
+        return typeInMove;
+      case 'bool':
+        if (typeInTs !== 'Boolean') throw new Error('Type mismatch');
+        return 'bool';
+      case 'u128':
+      case 'u256':
+        if (typeInTs !== 'String') throw new Error('Type mismatch');
+        return typeInMove;
+      case 'bytes':
+        return 'vector<u8>';
     }
   }
-  switch (typeName) {
+  switch (typeInTs) {
     case 'Number':
       return 'u64';
     case 'Boolean':
@@ -313,10 +303,6 @@ function toMoveType(typeName: string, typeHelp?: MoveType) {
       return 'u64';
     case 'Date':
       return 'u64';
-    // case "Array":
-    // const inner = toMoveType("String");
-    // TODO: vector type processing
-    // return "vector";
     default:
       return 'u64';
   }

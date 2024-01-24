@@ -1,21 +1,28 @@
 import {
-  AptosAccount,
-  MaybeHexString,
-  TxnBuilderTypes,
-  Types,
-  HexString,
-  TransactionBuilder,
-  BCS,
-  OptionalTransactionArgs,
-  getPropertyValueRaw,
-  AptosClient,
-  ClientConfig,
-} from 'aptos';
+  Aptos,
+  AptosConfig,
+  Network,
+  MoveType,
+  MoveValue,
+  AccountAddress,
+  AccountAddressInput,
+  Hex,
+  HexInput,
+  Account,
+  InputGenerateTransactionPayloadData,
+  InputGenerateTransactionOptions,
+  PendingTransactionResponse,
+  AnyRawTransaction,
+  SimpleTransaction,
+  MultiAgentTransaction,
+  AccountAuthenticator,
+  EntryFunctionArgumentTypes,
+} from '@aptos-labs/ts-sdk';
 import {
   toAddress,
   getOrmAddress,
   loadAddresses,
-  hexEncodedBytesToUint8Array,
+  // hexEncodedBytesToUint8Array,
   areUint8ArraysEqual,
   getNamedObjectAddress,
   loadOrmClassMetadata,
@@ -25,7 +32,7 @@ import {
 } from './utilities';
 import {
   OrmTxn,
-  OrmTxnSerialized,
+  // OrmTxnSerialized,
   OrmTxnOptions,
   PendingTransaction,
   OrmFunctionPayload,
@@ -37,7 +44,7 @@ import {
 } from './types';
 import { getOrmClassMetadata } from './metadata';
 
-export class OrmClient extends AptosClient {
+export class OrmClient extends Aptos {
   // private static check(obj: unknown, name: string) {
   //     return (
   //         typeof obj === "object" &&
@@ -50,12 +57,28 @@ export class OrmClient extends AptosClient {
   private _ORM_ADDRESS: string;
   private _ORM_EVENT_TYPE: string;
   private _ORM_OBJECT_TYPE: string;
-
-  constructor(url_or_config: string, config?: ClientConfig) {
+  // constructor(url_or_config: string, config?: ClientConfig);
+  constructor(url_or_config: any) {
+    let c: AptosConfig;
     if (url_or_config === undefined) {
-      throw new Error('Aptos Node URL is undefined');
+      throw new Error('Target network or config is not defined');
+    } else if (url_or_config instanceof AptosConfig) {
+      c = url_or_config;
+    } else if (typeof url_or_config === 'string') {
+      if (url_or_config.includes('testnet')) {
+        c = new AptosConfig({ network: Network.TESTNET });
+      } else if (url_or_config.includes('mainnet')) {
+        c = new AptosConfig({ network: Network.MAINNET });
+      } else if (url_or_config.includes('devnet')) {
+        c = new AptosConfig({ network: Network.DEVNET });
+      } else if (url_or_config.includes('http')) {
+        c = new AptosConfig({ network: Network.LOCAL });
+      }
     }
-    super(url_or_config, config);
+    if (c === undefined) {
+      throw new Error('Target network or config is not defined');
+    }
+    super(c);
     this._ORM_ADDRESS = getOrmAddress();
     this._ORM_EVENT_TYPE = `${this._ORM_ADDRESS}::orm_class::OrmEvent`;
     this._ORM_OBJECT_TYPE = `${this._ORM_ADDRESS}::orm_object::OrmObject`;
@@ -65,21 +88,21 @@ export class OrmClient extends AptosClient {
     return this._ORM_ADDRESS;
   }
 
-  set ormAddress(address: MaybeHexString) {
-    this._ORM_ADDRESS = toAddress(address).toShortString();
+  set ormAddress(address: AccountAddressInput) {
+    this._ORM_ADDRESS = toAddress(address).toString();
   }
 
   get ormEventType() {
     return this._ORM_EVENT_TYPE;
   }
 
-  async getAccountSequenceNumber(address: MaybeHexString) {
-    const account_data = await this.getAccount(address);
-    return BigInt(account_data.sequence_number);
+  async getAccountSequenceNumber(address: AccountAddressInput) {
+    const data = await this.account.getAccountInfo({ accountAddress: address });
+    return BigInt(data.sequence_number);
   }
 
   async generateOrmTxn(
-    signers: (AptosAccount | MaybeHexString)[],
+    signers: (Account | AccountAddress)[],
     payload: OrmFunctionPayload,
     options?: OrmTxnOptions
   ): Promise<OrmTxn> {
@@ -88,90 +111,58 @@ export class OrmClient extends AptosClient {
     }
     const [sender, ...others] = signers;
     const sender_address = toAddress(signers[0]);
-    const auths: (TxnBuilderTypes.AccountAuthenticatorEd25519 | null)[] = [];
-    const rawtxn = await this.generateTransaction(sender_address, payload, options);
-    if (signers.length === 1 && !options?.payer) {
-      if (sender instanceof AptosAccount) {
-        const signature = sender.signBuffer(TransactionBuilder.getSigningMessage(rawtxn));
-        auths.push(
-          new TxnBuilderTypes.AccountAuthenticatorEd25519(
-            new TxnBuilderTypes.Ed25519PublicKey(sender.pubKey().toUint8Array()),
-            new TxnBuilderTypes.Ed25519Signature(signature.toUint8Array())
-          )
-        );
+    const auths: (AccountAuthenticator | null)[] = [];
+    let payer_auth: AccountAuthenticator;
+    let type: 'simple' | 'multiAgent';
+    let txn: AnyRawTransaction;
+    if (signers.length == 1) {
+      type = 'simple';
+      txn = await this.transaction.build.simple({
+        sender: sender_address,
+        data: payload,
+        options: options,
+        withFeePayer: options?.payer ? true : false,
+      });
+      if (sender instanceof Account) {
+        auths.push(this.transaction.sign({ signer: sender, transaction: txn }));
       } else {
         auths.push(null);
       }
-      return {
-        type: 'raw',
-        txn: rawtxn,
-        auths: auths,
-      };
-    }
-    let payer_auth: TxnBuilderTypes.AccountAuthenticatorEd25519 | null = null;
-    const secondary_addresses = others.map((o) => TxnBuilderTypes.AccountAddress.fromHex(toAddress(o)));
-    let mtxn: TxnBuilderTypes.MultiAgentRawTransaction | TxnBuilderTypes.FeePayerRawTransaction;
-    if (options?.payer) {
-      const payer_address = toAddress(options.payer);
-      mtxn = new TxnBuilderTypes.FeePayerRawTransaction(
-        rawtxn,
-        secondary_addresses,
-        TxnBuilderTypes.AccountAddress.fromHex(payer_address)
-      );
     } else {
-      mtxn = new TxnBuilderTypes.MultiAgentRawTransaction(rawtxn, secondary_addresses);
+      type = 'multiAgent';
+      txn = await this.transaction.build.multiAgent({
+        sender: sender_address,
+        secondarySignerAddresses: others.map((o) => toAddress(o)),
+        data: payload,
+        options: options,
+        withFeePayer: options?.payer ? true : false,
+      });
+      signers.forEach((s) => {
+        if (s instanceof Account) {
+          auths.push(this.transaction.sign({ signer: s, transaction: txn }));
+        } else {
+          auths.push(null);
+        }
+      });
     }
-    for (const s of signers) {
-      if (s instanceof AptosAccount) {
-        auths.push(await this.signMultiTransaction(s as AptosAccount, mtxn));
-      } else {
-        auths.push(null);
-      }
+    if (options?.payer && options.payer instanceof Account) {
+      payer_auth = this.transaction.signAsFeePayer({ signer: options.payer, transaction: txn });
     }
-    if (options?.payer && options.payer instanceof AptosAccount) {
-      payer_auth = await this.signMultiTransaction(options.payer, mtxn);
-    }
-    return {
-      type: options?.payer ? 'fee-payer' : 'multi-agent',
-      txn: mtxn,
-      auths,
-      payer_auth,
-    };
+    return { type, txn, auths, payer_auth };
   }
 
-  async signOrmTxn(signers: (AptosAccount | MaybeHexString)[], ormtxn: OrmTxn, options?: Pick<OrmTxnOptions, 'payer'>) {
+  async signOrmTxn(signers: (Account | AccountAddress)[], ormtxn: OrmTxn, options?: Pick<OrmTxnOptions, 'payer'>) {
     const auths = ormtxn.auths;
     for (let i = 0; i < auths.length; i++) {
-      if (!auths[i]) {
-        if (signers.length <= i) continue;
-        const s = signers[i];
-        if (s instanceof AptosAccount) {
-          const signature = s.signBuffer(TransactionBuilder.getSigningMessage(ormtxn.txn));
-          ormtxn.auths[i] = new TxnBuilderTypes.AccountAuthenticatorEd25519(
-            new TxnBuilderTypes.Ed25519PublicKey(s.pubKey().toUint8Array()),
-            new TxnBuilderTypes.Ed25519Signature(signature.toUint8Array())
-          );
-        }
-        // else {
-        //   throw new Error(`${i + 1}th signer missing`);
-        // }
+      if (auths[i]) continue;
+      if (signers.length <= i) continue;
+      const s = signers[i];
+      if (s instanceof Account) {
+        auths.push(this.transaction.sign({ signer: s, transaction: ormtxn.txn }));
       }
     }
-    if (ormtxn.type === 'fee-payer') {
-      const txn = ormtxn.txn as TxnBuilderTypes.FeePayerRawTransaction;
-      if (!ormtxn.payer_auth) {
-        if (options?.payer && options.payer instanceof AptosAccount) {
-          const payer = options.payer;
-          if (!areUint8ArraysEqual(txn.fee_payer_address.address, payer.address().toUint8Array())) {
-            throw new Error(`payer address mismatch`);
-          }
-          const signature = payer.signBuffer(TransactionBuilder.getSigningMessage(ormtxn.txn));
-          ormtxn.payer_auth = new TxnBuilderTypes.AccountAuthenticatorEd25519(
-            new TxnBuilderTypes.Ed25519PublicKey(payer.pubKey().toUint8Array()),
-            new TxnBuilderTypes.Ed25519Signature(signature.toUint8Array())
-          );
-        }
-      }
+    if (options?.payer && options.payer instanceof Account) {
+      ormtxn.payer_auth = this.transaction.signAsFeePayer({ signer: options.payer, transaction: ormtxn.txn });
     }
     return ormtxn;
   }
@@ -185,52 +176,36 @@ export class OrmClient extends AptosClient {
       if (!auth) throw new Error(`secondary signature missing`);
     }
     switch (ormtxn.type) {
-      case 'raw': {
-        const rawtxn = ormtxn.txn as TxnBuilderTypes.RawTransaction;
-        const serialized = BCS.bcsToBytes(new TxnBuilderTypes.SignedTransaction(rawtxn, sender));
-        return await this.submitTransaction(serialized);
-      }
-      case 'fee-payer': {
-        const txn = ormtxn.txn as TxnBuilderTypes.FeePayerRawTransaction;
-        if (!ormtxn.payer_auth) {
-          throw new Error(`payer_auth missing in fee payer transaction`);
-        }
-        const txn_auth = new TxnBuilderTypes.TransactionAuthenticatorFeePayer(
-          sender,
-          txn.secondary_signer_addresses,
-          others,
-          { address: txn.fee_payer_address, authenticator: ormtxn.payer_auth }
-        );
-        const serialized = BCS.bcsToBytes(new TxnBuilderTypes.SignedTransaction(txn.raw_txn, txn_auth));
-        return await this.submitTransaction(serialized);
-      }
-      case 'multi-agent': {
-        const txn = ormtxn.txn as TxnBuilderTypes.MultiAgentRawTransaction;
-        const txn_auth = new TxnBuilderTypes.TransactionAuthenticatorMultiAgent(
-          sender,
-          txn.secondary_signer_addresses,
-          others
-        );
-        const serialized = BCS.bcsToBytes(new TxnBuilderTypes.SignedTransaction(txn.raw_txn, txn_auth));
-        return await this.submitTransaction(serialized);
-      }
+      case 'simple':
+        return await this.transaction.submit.simple({
+          transaction: ormtxn.txn,
+          senderAuthenticator: sender,
+          feePayerAuthenticator: ormtxn.payer_auth,
+        });
+      case 'multiAgent':
+        return await this.transaction.submit.multiAgent({
+          transaction: ormtxn.txn,
+          senderAuthenticator: sender,
+          additionalSignersAuthenticators: others,
+          feePayerAuthenticator: ormtxn.payer_auth,
+        });
       default:
         throw new Error(`unknown txn type ${ormtxn.type}`);
     }
   }
 
   async waitForOrmTxnWithResult(
-    pending: { hash: string },
+    pending: { hash: HexInput },
     extrargs?: {
       timeoutSecs?: number;
       checkSuccess?: boolean;
     }
   ) {
-    return await this.waitForTransactionWithResult(pending.hash, extrargs);
+    return await this.transaction.waitForTransaction({ transactionHash: pending.hash, ...extrargs });
   }
 
   async waitForOrmTxnsWithResult(
-    pendings: { hash: string }[],
+    pendings: { hash: HexInput }[],
     extrargs?: {
       timeoutSecs?: number;
       checkSuccess?: boolean;
@@ -238,13 +213,13 @@ export class OrmClient extends AptosClient {
   ) {
     return await Promise.all(
       pendings.map(async (pending) => {
-        return await this.waitForTransactionWithResult(pending.hash, extrargs);
+        return await this.transaction.waitForTransaction({ transactionHash: pending.hash, ...extrargs });
       })
     );
   }
 
   async signAndsubmitOrmTxn(
-    signers: (AptosAccount | MaybeHexString)[],
+    signers: (Account | AccountAddress)[],
     ormtxn: OrmTxn,
     options?: Pick<OrmTxnOptions, 'payer'>
   ) {
@@ -253,7 +228,7 @@ export class OrmClient extends AptosClient {
   }
 
   async signAndsubmitOrmTxns(
-    signers: (AptosAccount | MaybeHexString)[],
+    signers: (Account | AccountAddress)[],
     ormtxns: OrmTxn[],
     options?: Pick<OrmTxnOptions, 'payer'>
   ) {
@@ -272,7 +247,7 @@ export class OrmClient extends AptosClient {
       checkSuccess?: boolean;
     }
   ) {
-    return await this.waitForTransaction(pending.hash, extrargs);
+    return await this.waitForTransaction({ transactionHash: pending.hash, ...extrargs });
   }
 
   async waitForOrmTxns(
@@ -283,14 +258,14 @@ export class OrmClient extends AptosClient {
     }
   ) {
     return await Promise.all(
-      pendings.map(async (ptxn) => {
-        return await this.waitForTransaction(ptxn.hash, extrargs);
+      pendings.map(async (pending) => {
+        return await this.waitForTransaction({ transactionHash: pending.hash, ...extrargs });
       })
     );
   }
 
   async signSubmitAndWaitOrmTxn(
-    signers: (AptosAccount | MaybeHexString)[],
+    signers: (Account | AccountAddress)[],
     ormtxn: OrmTxn,
     options?: Pick<OrmTxnOptions, 'payer'>,
     extrargs?: {
@@ -305,7 +280,7 @@ export class OrmClient extends AptosClient {
   }
 
   async signSubmitAndWaitOrmTxns(
-    signers: (AptosAccount | MaybeHexString)[],
+    signers: (Account | AccountAddress)[],
     ormtxns: OrmTxn[],
     options?: Pick<OrmTxnOptions, 'payer'>,
     extrargs?: {
@@ -324,7 +299,7 @@ export class OrmClient extends AptosClient {
   }
 
   async signSubmitAndWaitOrmTxnWithResult(
-    signers: (AptosAccount | MaybeHexString)[],
+    signers: (Account | AccountAddress)[],
     ormtxn: OrmTxn,
     options?: Pick<OrmTxnOptions, 'payer'>,
     extrargs?: {
@@ -338,7 +313,7 @@ export class OrmClient extends AptosClient {
   }
 
   async signSubmitAndWaitOrmTxnsWithResult(
-    signers: (AptosAccount | MaybeHexString)[],
+    signers: (Account | AccountAddress)[],
     ormtxns: OrmTxn[],
     options?: Pick<OrmTxnOptions, 'payer'>,
     extrargs?: {
@@ -373,20 +348,20 @@ export class OrmClient extends AptosClient {
     }
     return {
       function: `${metadata.package_address}::${metadata.module_name}::create`,
-      type_arguments: type_args,
-      arguments: args,
-    };
+      typeArguments: type_args,
+      functionArguments: args,
+    } as OrmFunctionPayload;
   }
 
   async createTxn<OrmObject extends OrmObjectLiteral>(
-    user: AptosAccount | MaybeHexString,
+    user: Account | AccountAddress,
     obj: OrmObjectTarget<OrmObject>,
     options?: OrmTxnOptions
   ) {
     return await this.generateOrmTxn([user], this.createTxnPayload(obj), options);
   }
 
-  createToTxnPayload<OrmObject extends OrmObjectLiteral>(obj: OrmObjectTarget<OrmObject>, to: MaybeHexString) {
+  createToTxnPayload<OrmObject extends OrmObjectLiteral>(obj: OrmObjectTarget<OrmObject>, to: AccountAddressInput) {
     const { metadata, object } = loadOrmClassMetadata(obj);
     const fields = metadata.fields;
     const args: any[] = [];
@@ -403,17 +378,23 @@ export class OrmClient extends AptosClient {
     if (!metadata.package_address) {
       throw new Error(`package address is not defined`);
     }
+
+    // type InputEntryFunctionData = {
+    //   function: MoveFunctionId;
+    //   typeArguments?: Array<TypeTag | string>;
+    //   functionArguments: Array<EntryFunctionArgumentTypes | SimpleEntryFunctionArgumentTypes>;
+    // };
     return {
       function: `${metadata.package_address}::${metadata.module_name}::create_to`,
-      type_arguments: type_args,
-      arguments: args,
-    };
+      typeArguments: type_args,
+      functionArguments: args,
+    } as OrmFunctionPayload;
   }
 
   async createToTxn<OrmObject extends OrmObjectLiteral>(
-    user: AptosAccount | MaybeHexString,
+    user: Account | AccountAddress,
     obj: OrmObjectTarget<OrmObject>,
-    to: MaybeHexString,
+    to: AccountAddressInput,
     options?: OrmTxnOptions
   ) {
     return await this.generateOrmTxn([user], this.createToTxnPayload(obj, to), options);
@@ -437,13 +418,13 @@ export class OrmClient extends AptosClient {
     }
     return {
       function: `${metadata.package_address}::${metadata.module_name}::update`,
-      type_arguments: type_args,
-      arguments: args,
-    };
+      typeArguments: type_args,
+      functionArguments: args,
+    } as OrmFunctionPayload;
   }
 
   async updateTxn<OrmObject extends OrmObjectLiteral>(
-    user: AptosAccount | MaybeHexString,
+    user: Account | AccountAddress,
     obj: OrmObjectTarget<OrmObject>,
     options?: OrmTxnOptions
   ) {
@@ -459,13 +440,13 @@ export class OrmClient extends AptosClient {
     }
     return {
       function: `${metadata.package_address}::${metadata.module_name}::delete`,
-      type_arguments: type_args,
-      arguments: args,
-    };
+      typeArguments: type_args,
+      functionArguments: args,
+    } as OrmFunctionPayload;
   }
 
   async deleteTxn<OrmObject extends OrmObjectLiteral>(
-    user: AptosAccount | MaybeHexString,
+    user: Account | AccountAddress,
     obj: OrmObjectTarget<OrmObject>,
     options?: OrmTxnOptions
   ) {
@@ -473,8 +454,8 @@ export class OrmClient extends AptosClient {
   }
 
   async transferCoinsTxn(
-    sender: AptosAccount | MaybeHexString,
-    receiver: MaybeHexString,
+    sender: Account | AccountAddress,
+    receiver: AccountAddressInput,
     amount: number | bigint,
     options?: OrmTxnOptions
   ) {
@@ -482,8 +463,8 @@ export class OrmClient extends AptosClient {
       [sender],
       {
         function: `0x1::aptos_account::transfer`,
-        type_arguments: [],
-        arguments: [receiver, String(amount)],
+        typeArguments: [],
+        functionArguments: [receiver, String(amount)],
       },
       options
     );
@@ -497,9 +478,11 @@ export class OrmClient extends AptosClient {
         throw new Error(`package address is not defined`);
       }
       const rvalues = await this.view({
-        function: `${metadata.package_address}::${metadata.module_name}::get`,
-        type_arguments: [],
-        arguments: [address.toShortString()],
+        payload: {
+          function: `${metadata.package_address}::${metadata.module_name}::get`,
+          typeArguments: [],
+          functionArguments: [address.toString()],
+        },
       });
       const dataobj = Object.create((metadata.class as any).prototype);
       rvalues.forEach((r, i) => {

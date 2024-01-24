@@ -6,3 +6,4 @@
 **/.move
 move/**/build
 build.log
+examples

@@ -10,13 +10,4 @@ export {
   OrmFreePrepayClient,
 } from './fee_free';
 export * from './utilities';
-export * from './poa'
-// export {
-//   getOrmAddress,
-//   toAddress,
-//   ensureAddressString,
-//   loadAccountFromPrivatekeyFile,
-//   createAccount,
-//   debug,
-//   sleep,
-// } from './utilities';
+export * from './poa';

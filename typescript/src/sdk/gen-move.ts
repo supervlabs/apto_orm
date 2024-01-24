@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { OrmClassMetadata, OrmFieldData } from './types';
-import { ensureAddressString, toAddress } from './utilities';
-import { Account, AccountAddress } from '@aptos-labs/ts-sdk';
+import { OrmFieldTypeString, OrmClassMetadata, OrmFieldData } from './types';
+import { ensureAddressString } from './utilities';
+import { MoveValue } from '@aptos-labs/ts-sdk';
 
 let indent_depth = 0;
 
@@ -34,7 +34,8 @@ export const constString = (s: string) => {
   return `string::utf8(b"${s}")`;
 };
 
-export function loadConst(type: string, value: OrmValue) {
+// [FIXME] add EntryFunctionArgumentTypes to the value's type
+export function loadConst(type: OrmFieldTypeString, value: MoveValue) {
   switch (type) {
     case 'string::String':
       return constString(value as string);
@@ -47,9 +48,11 @@ export function loadConst(type: string, value: OrmValue) {
       return String(value);
     case 'u128':
     case 'u256':
-      return value;
+      return String(value);
     case 'address':
-      return ensureAddressString(value as MaybeHexString);
+      return ensureAddressString(String(value));
+    case 'vector<u8>':
+      throw new Error(`[FIXME] vector<u8> is not supported yet`);
     default:
       throw new Error(`Unknown type for constant: ${type}, ${value}`);
   }

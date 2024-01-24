@@ -14,9 +14,37 @@ import {
   SimpleTransaction,
   MultiAgentTransaction,
   AccountAuthenticator,
+  EntryFunctionArgumentTypes,
 } from '@aptos-labs/ts-sdk';
 
 export type NamedAddresses = { [named_address: string]: AccountAddress };
+
+export type OrmFieldCommonMoveType =
+  | 'address'
+  | 'string'
+  | 'String'
+  | 'bytes'
+  | 'u8'
+  | 'u16'
+  | 'u32'
+  | 'u64'
+  | 'u128'
+  | 'u256'
+  | 'bool';
+// [FIXME] - add support for EntryFunctionArgumentTypes
+// | EntryFunctionArgumentTypes;
+
+export type OrmFieldTypeString =
+  | 'address'
+  | 'u8'
+  | 'u16'
+  | 'u32'
+  | 'u64'
+  | 'u128'
+  | 'u256'
+  | 'bool'
+  | 'string::String'
+  | 'vector<u8>';
 
 // export interface OrmField extends Types.MoveStructField {}
 export interface OrmFieldConfig {
@@ -25,7 +53,7 @@ export interface OrmFieldConfig {
   /** The resource field name of onchain AptoOrm object */
   name?: string;
   /** The resource field type of onchain AptoOrm object */
-  type?: MoveType;
+  type?: OrmFieldCommonMoveType;
   /** The default value of the field if it is empty value. */
   default?: MoveValue;
   /** Timestamp updated automatically */
@@ -40,19 +68,32 @@ export interface OrmFieldConfig {
   token_property?: boolean;
 }
 
-export interface OrmFieldData extends OrmFieldConfig {
+export class OrmFieldData {
+  /** This field will be used to create an object if set. */
+  public index?: boolean;
   /** The resource field name of onchain AptoOrm object */
-  name: string;
+  public name: string;
   /** The resource field type of onchain AptoOrm object */
-  type: MoveType;
+  public type: OrmFieldTypeString;
+  /** The default value of the field if it is empty value. */
+  public default?: MoveValue;
+  /** Timestamp updated automatically */
+  public timestamp: boolean;
+  /** This field is unable to updated after created. */
+  public immutable: boolean;
+  /** The constant value is set to the field. */
+  public constant?: string;
+  /** whether the field is a major field of Aptos Token object. */
+  public token_field: boolean;
+  /** The field is a Aptos Token property */
+  public token_property: boolean;
+  /** The resource field name of onchain AptoOrm object */
   /** The field name (property key) in the class */
-  property_key: string;
+  public property_key: string;
   /** The field type (property type) in the class */
-  property_type: any;
+  public property_type: any;
   /** whether the field is writable by the user */
-  writable: boolean;
-  /** whether the field can be updated by the user. update is not supported. */
-  immutable: boolean;
+  public writable: boolean;
 }
 
 /** ORM Token configuration */
