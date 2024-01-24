@@ -1,12 +1,25 @@
 import 'reflect-metadata';
-import { Types, MaybeHexString, HexString, AptosClient, AptosAccount } from 'aptos';
+import {
+  MoveType,
+  MoveValue,
+  AccountAddress,
+  AccountAddressInput,
+  Hex,
+  HexInput,
+  Account,
+  InputGenerateTransactionPayloadData,
+  InputGenerateTransactionOptions,
+  PendingTransactionResponse,
+  AnyRawTransaction,
+  SimpleTransaction,
+  MultiAgentTransaction,
+  AccountAuthenticator,
+} from '@aptos-labs/ts-sdk';
 import {
   OrmClassMetadata,
   OrmObjectConfig,
   OrmFieldData,
   OrmFieldConfig,
-  OrmType,
-  OrmValue,
   OrmTokenConfig,
   OrmObjectLiteral,
 } from './types';
@@ -15,8 +28,8 @@ import { camelToSnake, loadAddresses, toAddress } from './utilities';
 const ormObjectKey = Symbol('orm:object');
 const ormObjectFieldsKey = Symbol('orm:object:fields');
 const ormClasses = new Map<string, OrmObjectLiteral>();
-const ormPackageCreators = new Map<string, MaybeHexString>();
-const aptosTokenFields: Set<string> = new Set(['name', 'uri', 'description']);
+const ormPackageCreators = new Map<string, AccountAddress>();
+const defaultTokenFields: Set<string> = new Set(['name', 'uri', 'description']);
 
 export function getOrmClass(class_name: string) {
   return ormClasses.get(class_name);
@@ -46,7 +59,7 @@ export function OrmClass(config: OrmObjectConfig) {
   if (!config || !config.package_name) {
     throw new Error('config.package_name is required');
   }
-  return function <T extends { new(...args: any[]): {} }>(target: T) {
+  return function <T extends { new (...args: any[]): {} }>(target: T) {
     // if (!(target.prototype instanceof BaseOrmClass)) {
     //   throw new Error('OrmClass must extends BaseOrmClass');
     // }
@@ -124,7 +137,7 @@ export function OrmClass(config: OrmObjectConfig) {
         config.token_config.collection_name = target.name;
       }
       use_modules.push('aptos_token_objects::token');
-      const token_fields: Set<string> = new Set(aptosTokenFields);
+      const token_fields: Set<string> = new Set(defaultTokenFields);
       fields.forEach((field) => {
         const removed = token_fields.delete(field.name);
         if (removed) {
@@ -152,6 +165,7 @@ export function OrmClass(config: OrmObjectConfig) {
     const resource: OrmClassMetadata = {
       ...config,
       class: target,
+      package_creator: toAddress(config.package_creator),
       package_address: named_addresses[config.package_name],
       name: target.name,
       module_name,
@@ -213,6 +227,7 @@ export function OrmField(config?: OrmFieldConfig): PropertyDecorator {
     if (!config) config = {};
     const type_class = Reflect.getMetadata('design:type', target, key);
     const type = toMoveType(type_class.name, config.type);
+    console.log('OrmField type = ', type_class.name, config.type, type);
     const field: OrmFieldData = {
       name: config.name || camelToSnake(key),
       type: type,
@@ -260,7 +275,7 @@ export const OrmIndexField = (config?: OrmFieldConfig) => {
   return OrmField(config);
 };
 
-function toMoveType(typeName: string, typeHelp?: string) {
+function toMoveType(typeName: string, typeHelp?: MoveType) {
   if (typeHelp) {
     switch (typeHelp) {
       case 'string':

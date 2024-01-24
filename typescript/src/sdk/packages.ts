@@ -11,6 +11,7 @@ import {
   sleep,
   toAddress,
   getNamedObjectAddress,
+  getPackageAddress,
 } from './utilities';
 import path from 'path';
 import fs from 'fs';
@@ -22,10 +23,6 @@ import { sha3_256 as sha3Hash } from '@noble/hashes/sha3';
 
 
 const MAXIMUM_TRANSACTION_SIZE = 62000;
-
-export function getPackageAddress(package_creator: AptosAccount | MaybeHexString, package_name: string) {
-  return getNamedObjectAddress(package_creator, [package_name]);
-}
 
 export async function createPackageTxn(
   client: OrmClient,

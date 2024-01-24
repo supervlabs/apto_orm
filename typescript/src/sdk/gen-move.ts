@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { OrmClassMetadata, OrmFieldData, OrmValue } from './types';
-import { MaybeHexString } from 'aptos';
-import { ensureAddress } from './utilities';
+import { OrmClassMetadata, OrmFieldData } from './types';
+import { ensureAddressString, toAddress } from './utilities';
+import { Account, AccountAddress } from '@aptos-labs/ts-sdk';
 
 let indent_depth = 0;
 
@@ -34,14 +34,6 @@ export const constString = (s: string) => {
   return `string::utf8(b"${s}")`;
 };
 
-export const constAddress = (address?: MaybeHexString) => {
-  if (!address) return '@0x0';
-  if (typeof address === 'string' && address.startsWith('@')) {
-    return address;
-  }
-  return `@${ensureAddress(address)}`;
-};
-
 export function loadConst(type: string, value: OrmValue) {
   switch (type) {
     case 'string::String':
@@ -57,7 +49,7 @@ export function loadConst(type: string, value: OrmValue) {
     case 'u256':
       return value;
     case 'address':
-      return ensureAddress(value as MaybeHexString);
+      return ensureAddressString(value as MaybeHexString);
     default:
       throw new Error(`Unknown type for constant: ${type}, ${value}`);
   }
@@ -126,8 +118,7 @@ export const initModule = (class_data: OrmClassMetadata) => {
       token_config.max_supply,
       token_config.token_use_property_map,
       token_config.royalty_present,
-      constAddress(token_config.royalty_payee),
-      // token_config.royalty_payee ? constAddress(token_config.royalty_payee) : `@${class_data.package_name}`,
+      `${token_config.royalty_payee ? ensureAddressString(token_config.royalty_payee) : '0x0'}`,
       token_config.royalty_denominator,
       token_config.royalty_numerator,
     ];
@@ -332,10 +323,8 @@ export const updateObjectFunction = (class_data: OrmClassMetadata) => {
   let property_num = 0;
   let borrow_num = 0;
   class_data.user_fields.forEach((field) => {
-    if (!field.index && !field.token_field && !field.token_property)
-      borrow_num++;
-    if (field.writable && field.token_property)
-      property_num++;
+    if (!field.index && !field.token_field && !field.token_property) borrow_num++;
+    if (field.writable && field.token_property) property_num++;
   });
   code.push(print(`let ${property_num > 0 ? '' : '_'}object_signer = orm_object::load_signer(user, object);`));
   class_data.user_fields.forEach((field) => {
@@ -347,8 +336,7 @@ export const updateObjectFunction = (class_data: OrmClassMetadata) => {
     code.push(unindent(`);`));
   });
 
-  if (borrow_num > 0)
-    code.push(print(`let user_data = borrow_global_mut<${class_data.name}>(object_address);`));
+  if (borrow_num > 0) code.push(print(`let user_data = borrow_global_mut<${class_data.name}>(object_address);`));
 
   class_data.user_fields.forEach((field) => {
     if (field.index) return;
@@ -483,9 +471,7 @@ export const getFunction = (class_data: OrmClassMetadata) => {
   });
   code.push(unindent_then_indent(`) ${acquires} {`));
 
-  code.push(
-    print(`let ${o_num > 0 ? '' : '_'}o = object::address_to_object<${class_data.name}>(object);`)
-  );
+  code.push(print(`let ${o_num > 0 ? '' : '_'}o = object::address_to_object<${class_data.name}>(object);`));
   if (borrow_num > 0) {
     code.push(print(`let user_data = *borrow_global<${class_data.name}>(object);`));
   }
@@ -493,8 +479,8 @@ export const getFunction = (class_data: OrmClassMetadata) => {
     if (field.token_field) {
       return `token::${field.name}(o)`;
     } else if (field.token_property) {
-      const field_type = field.type === 'string::String' ? 'string' :
-        field.type === 'vector<u8>' ? 'bytes' : field.type;
+      const field_type =
+        field.type === 'string::String' ? 'string' : field.type === 'vector<u8>' ? 'bytes' : field.type;
       return `property_map::read_${field_type}(&o, &string::utf8(b"${field.name}"))`;
     } else {
       return `user_data.${field.name}`;

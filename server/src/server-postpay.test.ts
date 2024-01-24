@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import orm, { ensureAddress, sleep } from "apto_orm";
+import orm, { ensureAddressString, sleep } from "apto_orm";
 import { OrmClass, OrmField, OrmIndexField, OrmFreePostpayClient } from "apto_orm";
 import path from "path";
 
@@ -63,7 +63,7 @@ describe("FreeFeeObject", () => {
           arguments: [user.address().toShortString(), 0],
         },
         {
-          payer: ensureAddress(payer),
+          payer: ensureAddressString(payer),
         }
       );
       expect(ormtxn.type).toBeDefined();
@@ -96,7 +96,7 @@ describe("FreeFeeObject", () => {
           package_move_path,
         },
         {
-          payer: ensureAddress(payer),
+          payer: ensureAddressString(payer),
         }
       );
       for (const ormtxn of ormtxns) {
@@ -111,7 +111,7 @@ describe("FreeFeeObject", () => {
         body: "first free fee test for ...",
       });
       const ormtxn = await client.createTxn(user, ffobj, {
-        payer: ensureAddress(payer),
+        payer: ensureAddressString(payer),
       });
       const ptxn = await client.submitOrmTxn(ormtxn);
       expect(ptxn.hash).toBeDefined();

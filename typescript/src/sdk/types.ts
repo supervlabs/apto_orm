@@ -1,22 +1,23 @@
 import 'reflect-metadata';
-import { Types, MaybeHexString, HexString, AptosAccount, TxnBuilderTypes } from 'aptos';
+import {
+  MoveType,
+  MoveValue,
+  AccountAddress,
+  AccountAddressInput,
+  Hex,
+  HexInput,
+  Account,
+  InputGenerateTransactionPayloadData,
+  InputGenerateTransactionOptions,
+  PendingTransactionResponse,
+  AnyRawTransaction,
+  SimpleTransaction,
+  MultiAgentTransaction,
+  AccountAuthenticator,
+} from '@aptos-labs/ts-sdk';
 
-export type AptosPrimitiveTypeName =
-  | 'boolean'
-  | 'u8'
-  | 'u16'
-  | 'u32'
-  | 'u64'
-  | 'u128'
-  | 'u256'
-  | 'address'
-  | 'signer'
-  | '0x1::string::String';
+export type NamedAddresses = { [named_address: string]: AccountAddress };
 
-export type AptosTypeName = AptosPrimitiveTypeName | 'string' | 'vector';
-
-export type OrmType = Types.MoveType;
-export type OrmValue = Types.MoveValue;
 // export interface OrmField extends Types.MoveStructField {}
 export interface OrmFieldConfig {
   /** This field will be used to create an object if set. */
@@ -24,9 +25,9 @@ export interface OrmFieldConfig {
   /** The resource field name of onchain AptoOrm object */
   name?: string;
   /** The resource field type of onchain AptoOrm object */
-  type?: OrmType;
+  type?: MoveType;
   /** The default value of the field if it is empty value. */
-  default?: OrmValue;
+  default?: MoveValue;
   /** Timestamp updated automatically */
   timestamp?: boolean;
   /** This field is unable to updated after created. */
@@ -43,7 +44,7 @@ export interface OrmFieldData extends OrmFieldConfig {
   /** The resource field name of onchain AptoOrm object */
   name: string;
   /** The resource field type of onchain AptoOrm object */
-  type: OrmType;
+  type: MoveType;
   /** The field name (property key) in the class */
   property_key: string;
   /** The field type (property type) in the class */
@@ -69,7 +70,7 @@ export type OrmTokenConfig = {
   /** Whether the token has royalty or the collection has royalty itself. */
   royalty_present: boolean;
   /** The payee of the royalty */
-  royalty_payee: MaybeHexString | string;
+  royalty_payee: AccountAddressInput | undefined;
   /** The denominator of the royalty */
   royalty_denominator: number;
   /** The numerator of the royalty */
@@ -78,10 +79,10 @@ export type OrmTokenConfig = {
 
 export type OrmObjectConfig = {
   /** The creator address of the object and package */
-  package_creator: AptosAccount | MaybeHexString;
+  package_creator: Account | AccountAddressInput;
   /** The package name where the objects belongs to */
   package_name: string;
-  package_address?: MaybeHexString; // address of the package
+  package_address?: AccountAddressInput; // address of the package
   /** Aptos creates named objects with predictable hash addresses, which are derived
    * from user input and the creator's address. This enables named objects to be indexed
    * and traced based on the user input provided by the creator.
@@ -110,10 +111,10 @@ export type OrmObjectConfig = {
 
 export interface OrmClassMetadata extends OrmObjectConfig {
   class: OrmObjectLiteral;
-  package_address: MaybeHexString; // address of the package
+  package_creator: AccountAddress;
+  package_address: AccountAddress;
   name: string; // name of the object
   module_name: string; // name of the module
-  // type?: OrmType; // address::module::object
   fields: OrmFieldData[]; // fields of the object
   user_fields: OrmFieldData[]; // user fields of the object
   error_code: Map<string, string>; // error code of the object
@@ -132,43 +133,32 @@ export type Uint256 = bigint;
 export type AnyNumber = bigint | number;
 export type Bytes = Uint8Array;
 
-export type OrmFunctionPayload = Types.EntryFunctionPayload;
-export type SubmitTransactionRequest = Omit<Types.SubmitTransactionRequest, 'payload'>;
+export type OrmFunctionPayload = InputGenerateTransactionPayloadData;
 
-export type OrmTxnOptions = Partial<SubmitTransactionRequest & { payer: AptosAccount | MaybeHexString }>;
-export type FeeFreeOrmTxnOptions = Pick<OrmTxnOptions, 'sequence_number' | 'expiration_timestamp_secs'>;
+// [FIXME] - payer => boolean으로 변경 - aptos-labs/ts-sdk 구조로 변경 필요
+export type OrmTxnOptions = InputGenerateTransactionOptions & { payer?: Account | boolean };
+export type FeeFreeOrmTxnOptions = Pick<OrmTxnOptions, 'accountSequenceNumber' | 'expireTimestamp'>;
 
-export type PendingTransaction = Types.PendingTransaction;
-export interface Signable {
-  signBuffer(buffer: Uint8Array): HexString;
-  pubKey(): HexString;
-  address(): HexString;
-  authKey(): HexString;
-}
+export type PendingTransaction = PendingTransactionResponse;
+
 export type OrmTxn = {
-  type: 'raw' | 'multi-agent' | 'fee-payer';
-  txn:
-    | TxnBuilderTypes.RawTransaction
-    | TxnBuilderTypes.MultiAgentRawTransaction
-    | TxnBuilderTypes.FeePayerRawTransaction;
-  auths: (TxnBuilderTypes.AccountAuthenticatorEd25519 | null)[];
-  payer_auth?: TxnBuilderTypes.AccountAuthenticatorEd25519 | null;
+  type: 'simple' | 'multiAgent';
+  txn: AnyRawTransaction;
+  auths: (AccountAuthenticator | null)[];
+  payer_auth?: AccountAuthenticator | null;
 };
 
-export type HexEncodedBytes = Types.HexEncodedBytes;
-
-export type OrmTxnSerialized = {
-  type: 'raw' | 'multi-agent' | 'fee-payer';
-  txn: HexEncodedBytes;
-  auths: (HexEncodedBytes | null)[];
-  payer_auth?: HexEncodedBytes | null;
-};
-
-export type NamedAddresses = { [named_address: string]: MaybeHexString };
+// export type HexEncodedBytes = Types.HexEncodedBytes;
+// export type OrmTxnSerialized = {
+//   type: 'raw' | 'multi-agent' | 'fee-payer';
+//   txn: HexEncodedBytes;
+//   auths: (HexEncodedBytes | null)[];
+//   payer_auth?: HexEncodedBytes | null;
+// };
 
 export type OrmPackageConfig = {
   /** The creator address of the object and package */
-  package_creator: AptosAccount | MaybeHexString;
+  package_creator: Account | AccountAddressInput;
   /** The package name where the objects belongs to */
   package_move_path: string;
   package_name: string;
@@ -184,8 +174,12 @@ export interface OrmObjectLiteral {
   [key: string]: any;
 }
 export const object_addr = Symbol.for('orm:object:address');
+
+/**
+ * Interface of the simple literal object with account address.
+ */
 export interface OrmObjectAddressable extends OrmObjectLiteral {
-  [object_addr]: MaybeHexString;
+  [object_addr]: AccountAddress;
 }
 
 /**
@@ -201,6 +195,6 @@ export type OrmObjectTarget<T> =
   | OrmObjectLiteral
   | OrmObjectAddressable
   | {
-      address: MaybeHexString;
+      address: AccountAddressInput;
       object: OrmObjectType<T> | OrmObjectLiteral | string;
     };

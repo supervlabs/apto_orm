@@ -14,7 +14,7 @@ export * from './poa'
 // export {
 //   getOrmAddress,
 //   toAddress,
-//   ensureAddress,
+//   ensureAddressString,
 //   loadAccountFromPrivatekeyFile,
 //   createAccount,
 //   debug,

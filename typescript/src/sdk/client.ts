@@ -28,7 +28,6 @@ import {
   OrmTxnSerialized,
   OrmTxnOptions,
   PendingTransaction,
-  Signable,
   OrmFunctionPayload,
   OrmObjectLiteral,
   OrmObjectTarget,
@@ -93,7 +92,6 @@ export class OrmClient extends AptosClient {
     const rawtxn = await this.generateTransaction(sender_address, payload, options);
     if (signers.length === 1 && !options?.payer) {
       if (sender instanceof AptosAccount) {
-        const signable = sender as Signable;
         const signature = sender.signBuffer(TransactionBuilder.getSigningMessage(rawtxn));
         auths.push(
           new TxnBuilderTypes.AccountAuthenticatorEd25519(
@@ -148,7 +146,6 @@ export class OrmClient extends AptosClient {
         if (signers.length <= i) continue;
         const s = signers[i];
         if (s instanceof AptosAccount) {
-          // const signable = sender as Signable;
           const signature = s.signBuffer(TransactionBuilder.getSigningMessage(ormtxn.txn));
           ormtxn.auths[i] = new TxnBuilderTypes.AccountAuthenticatorEd25519(
             new TxnBuilderTypes.Ed25519PublicKey(s.pubKey().toUint8Array()),

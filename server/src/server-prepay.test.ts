@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import orm, { ensureAddress, sleep } from "apto_orm";
+import orm, { ensureAddressString, sleep } from "apto_orm";
 import { OrmClass, OrmField, OrmIndexField, OrmFreePrepayClient } from "apto_orm";
 import path from "path";
 
