@@ -1,7 +1,26 @@
 // power_of_attorney API
-
-import { MaybeHexString, HexString, BCS, TxnBuilderTypes, AptosAccount } from 'aptos';
-import { getOrmAddress, toAddress } from './utilities';
+import {
+  AnyNumber,
+  Serializer,
+  Deserializer,
+  MoveFunctionId,
+  MoveType,
+  MoveValue,
+  AccountAddress,
+  AccountAddressInput,
+  Hex,
+  HexInput,
+  Account,
+  InputGenerateTransactionPayloadData,
+  InputGenerateTransactionOptions,
+  PendingTransactionResponse,
+  AnyRawTransaction,
+  SimpleTransaction,
+  MultiAgentTransaction,
+  AccountAuthenticator,
+  EntryFunctionArgumentTypes,
+} from '@aptos-labs/ts-sdk';
+import { getOrmAccountAddress, getOrmAddress, toAddress } from './utilities';
 import { OrmClient } from './client';
 import { OrmTxnOptions } from './types';
 
@@ -11,14 +30,14 @@ export enum AccountScheme {
 }
 
 export type PowerOfAttorneyProofTicket = {
-  address: MaybeHexString;
+  address: AccountAddressInput;
   module: string;
   struct: string;
   chain_id: number;
-  delegator_address: MaybeHexString;
-  delegator_sequence_number: number | bigint;
-  expiration_date: number | bigint;
-  designator: MaybeHexString;
+  delegator_address: AccountAddressInput;
+  delegator_sequence_number: AnyNumber;
+  expiration_date: AnyNumber;
+  designator: AccountAddressInput;
   designator_account_scheme: AccountScheme;
   designator_account_public_key_bytes: Uint8Array;
   designator_signed_proof_challenge: Uint8Array;
@@ -34,41 +53,37 @@ export type PowerOfAttorneyProofTicket = {
 // }
 
 export class PowerOfAttorneyProof {
-  address: MaybeHexString;
-  module: string;
-  struct: string;
-  designator_signed_proof_challenge: HexString;
+  address: AccountAddress = getOrmAccountAddress();
+  module: string = 'power_of_attorney';
+  struct: string = 'PowerOfAttorneyProof';
+  designator_signed_proof_challenge: HexInput;
   constructor(
     public readonly chain_id: number,
-    public readonly delegator_address: MaybeHexString,
-    public readonly delegator_sequence_number: number | bigint,
-    public readonly designator: MaybeHexString,
-    public readonly expiration_date: number | bigint
-  ) {
-    this.address = getOrmAddress();
-    this.module = 'power_of_attorney';
-    this.struct = this.constructor.name;
-  }
+    public readonly delegator_address: AccountAddressInput,
+    public readonly delegator_sequence_number: AnyNumber,
+    public readonly designator: AccountAddressInput,
+    public readonly expiration_date: AnyNumber
+  ) {}
 
-  serialize(serializer: BCS.Serializer) {
-    TxnBuilderTypes.AccountAddress.fromHex(this.address).serialize(serializer);
+  serialize(serializer: Serializer) {
+    serializer.serialize(this.address);
     serializer.serializeStr(this.module);
     serializer.serializeStr(this.struct);
     serializer.serializeU8(this.chain_id);
-    TxnBuilderTypes.AccountAddress.fromHex(this.delegator_address).serialize(serializer);
+    serializer.serialize(toAddress(this.delegator_address));
     serializer.serializeU64(this.delegator_sequence_number);
-    TxnBuilderTypes.AccountAddress.fromHex(this.designator).serialize(serializer);
+    serializer.serialize(toAddress(this.designator));
     serializer.serializeU64(this.expiration_date);
   }
 
-  generate(designator: AptosAccount): PowerOfAttorneyProofTicket {
-    const challengeHex = HexString.fromUint8Array(BCS.bcsToBytes(this));
-    const proofSignedByPrivateKey = designator.signHexString(challengeHex);
-    this.designator_signed_proof_challenge = proofSignedByPrivateKey;
+  generate(designator: Account): PowerOfAttorneyProofTicket {
+    const serializer = new Serializer();
+    this.serialize(serializer);
+    const proofSignedByPrivateKey = designator.sign(serializer.toUint8Array());
     return {
       ...this,
       designator_account_scheme: AccountScheme.ED25519_SCHEME,
-      designator_account_public_key_bytes: designator.pubKey().toUint8Array(),
+      designator_account_public_key_bytes: designator.publicKey.toUint8Array(),
       designator_signed_proof_challenge: proofSignedByPrivateKey.toUint8Array(),
     };
   }
@@ -80,15 +95,15 @@ export class PowerOfAttorneyProof {
  * @param poa AptosAccount
  * @param ticket PowerOfAttorneyProofTicket
  * @param options OrmTxnOptions
- * @returns 
+ * @returns
  */
 export async function initPoaTxn(
   client: OrmClient,
-  delegator: AptosAccount,
+  delegator: Account | AccountAddressInput,
   ticket: PowerOfAttorneyProofTicket,
   options?: OrmTxnOptions
 ) {
-  const fname = `${client.ormAddress}::power_of_attorney::init_poa`;
+  const fname: MoveFunctionId = `${client.ormAddress}::power_of_attorney::init_poa`;
   const args: any[] = [
     ticket.expiration_date,
     ticket.designator,
@@ -101,8 +116,8 @@ export async function initPoaTxn(
     [delegator],
     {
       function: fname,
-      type_arguments: type_args,
-      arguments: args,
+      typeArguments: type_args,
+      functionArguments: args,
     },
     options
   );
@@ -110,23 +125,20 @@ export async function initPoaTxn(
 
 export async function registerPoaTxn(
   client: OrmClient,
-  designator: AptosAccount,
-  delegator: AptosAccount,
-  config: { expiration_date: number | bigint, amount: number | bigint },
+  designator: Account | AccountAddressInput,
+  delegator: Account | AccountAddressInput,
+  config: { expiration_date: AnyNumber; amount: AnyNumber },
   options?: OrmTxnOptions
 ) {
-  const fname = `${client.ormAddress}::power_of_attorney::register_poa`;
-  const args: any[] = [
-    config.expiration_date,
-    config.amount,
-  ];
+  const fname: MoveFunctionId = `${client.ormAddress}::power_of_attorney::register_poa`;
+  const args: any[] = [config.expiration_date, config.amount];
   const type_args: string[] = [];
   return await client.generateOrmTxn(
     [designator, delegator],
     {
       function: fname,
-      type_arguments: type_args,
-      arguments: args,
+      typeArguments: type_args,
+      functionArguments: args,
     },
     options
   );
@@ -134,57 +146,49 @@ export async function registerPoaTxn(
 
 export async function revokePoaTxn(
   client: OrmClient,
-  designator: AptosAccount,
-  delegator: MaybeHexString,
+  designator: Account | AccountAddressInput,
+  delegator: AccountAddressInput,
   options?: OrmTxnOptions
 ) {
-  const fname = `${client.ormAddress}::power_of_attorney::revoke_poa`;
+  const fname: MoveFunctionId = `${client.ormAddress}::power_of_attorney::revoke_poa`;
   const args: any[] = [delegator];
   const type_args: string[] = [];
   return await client.generateOrmTxn(
     [designator],
     {
       function: fname,
-      type_arguments: type_args,
-      arguments: args,
+      typeArguments: type_args,
+      functionArguments: args,
     },
     options
   );
 }
 
-export async function pauseTxn(
-  client: OrmClient,
-  designator: AptosAccount,
-  options?: OrmTxnOptions
-) {
-  const fname = `${client.ormAddress}::power_of_attorney::pause`;
+export async function pauseTxn(client: OrmClient, designator: Account | AccountAddressInput, options?: OrmTxnOptions) {
+  const fname: MoveFunctionId = `${client.ormAddress}::power_of_attorney::pause`;
   const args: any[] = [];
   const type_args: string[] = [];
   return await client.generateOrmTxn(
     [designator],
     {
       function: fname,
-      type_arguments: type_args,
-      arguments: args,
+      typeArguments: type_args,
+      functionArguments: args,
     },
     options
   );
 }
 
-export async function resumeTxn(
-  client: OrmClient,
-  designator: AptosAccount,
-  options?: OrmTxnOptions
-) {
-  const fname = `${client.ormAddress}::power_of_attorney::resume`;
+export async function resumeTxn(client: OrmClient, designator: Account | AccountAddressInput, options?: OrmTxnOptions) {
+  const fname: MoveFunctionId = `${client.ormAddress}::power_of_attorney::resume`;
   const args: any[] = [];
   const type_args: string[] = [];
   return await client.generateOrmTxn(
     [designator],
     {
       function: fname,
-      type_arguments: type_args,
-      arguments: args,
+      typeArguments: type_args,
+      functionArguments: args,
     },
     options
   );

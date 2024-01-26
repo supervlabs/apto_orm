@@ -238,7 +238,7 @@ export async function publishPackageTxns(
   if (!fs.existsSync(mpath)) {
     compilePackage({ package_move_path, named_addresses });
   }
-  const modules: any[] = [];
+  // const modules: any[] = [];
   const modules_bytes: Uint8Array[] = [];
   const _metadata = fs.readFileSync(mpath);
   const mbytes = Hex.fromString(_metadata.toString('hex')).toUint8Array();
@@ -250,7 +250,7 @@ export async function publishPackageTxns(
     const moduleData = fs.readFileSync(file);
     const moduleBytes = Hex.fromString(moduleData.toString('hex')).toUint8Array();
     total_size += moduleBytes.length;
-    modules.push(new TxnBuilderTypes.Module(moduleBytes));
+    // modules.push(new TxnBuilderTypes.Module(moduleBytes));
     modules_bytes.push(moduleBytes);
   }
   const create_chunks = (data: Uint8Array) => {
@@ -268,7 +268,8 @@ export async function publishPackageTxns(
   // to be placed with other data. This may also be the only chunk.
   let sequence_number: string;
   try {
-    const account_data = await client.getAccount(user.address());
+    // const account_data = await client.getAccount(user.address());
+    const account_data = await client.getAccountInfo({ accountAddress: user.accountAddress });
     sequence_number = account_data.sequence_number;
   } catch (err) {
     throw err;
@@ -288,7 +289,7 @@ export async function publishPackageTxns(
     }
     return false;
   };
-  let seq = Number(sequence_number);
+  let seq = BigInt(sequence_number);
   const ormtxns: OrmTxn[] = [];
   const metadata_chunks = create_chunks(mbytes);
   for (const metadata_chunk of metadata_chunks.slice(0, -1)) {
@@ -305,7 +306,7 @@ export async function publishPackageTxns(
         false,
         cleanup(),
         {
-          sequence_number: String(seq++),
+          accountSequenceNumber: seq++,
           payer: options?.payer,
         }
       )
@@ -318,7 +319,7 @@ export async function publishPackageTxns(
 
   // Chunk each module and place them into a ormtxn when adding more would exceed the
   // maximum transaction size.
-  for (let idx = 0; idx < modules.length; idx++) {
+  for (let idx = 0; idx < modules_bytes.length; idx++) {
     const module = modules_bytes[idx];
     const chunked_module = create_chunks(module);
     for (const chunk of chunked_module) {
@@ -335,7 +336,7 @@ export async function publishPackageTxns(
             false,
             cleanup(),
             {
-              sequence_number: String(seq++),
+              accountSequenceNumber: seq++,
               payer: options?.payer,
             }
           )
@@ -366,7 +367,7 @@ export async function publishPackageTxns(
       true,
       cleanup(),
       {
-        sequence_number: String(seq++),
+        accountSequenceNumber: seq++,
         payer: options?.payer,
       }
     )
