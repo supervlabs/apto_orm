@@ -1,4 +1,21 @@
-import { MaybeHexString, AptosAccount, TxnBuilderTypes, HexString, BCS, Types } from 'aptos';
+import {
+  MoveFunctionId,
+  MoveType,
+  MoveValue,
+  AccountAddress,
+  AccountAddressInput,
+  Hex,
+  HexInput,
+  Account,
+  InputGenerateTransactionPayloadData,
+  InputGenerateTransactionOptions,
+  PendingTransactionResponse,
+  AnyRawTransaction,
+  SimpleTransaction,
+  MultiAgentTransaction,
+  AccountAuthenticator,
+  EntryFunctionArgumentTypes,
+} from '@aptos-labs/ts-sdk';
 import { OrmPackageConfig, OrmTxn, OrmTxnOptions } from './types';
 import { execSync } from 'child_process';
 import {
@@ -21,24 +38,23 @@ import { generateMoveToml } from './gen-toml';
 import { getOrmClassMetadata } from './metadata';
 import { sha3_256 as sha3Hash } from '@noble/hashes/sha3';
 
-
 const MAXIMUM_TRANSACTION_SIZE = 62000;
 
 export async function createPackageTxn(
   client: OrmClient,
-  user: AptosAccount | MaybeHexString,
+  user: Account | AccountAddressInput,
   package_name: string,
   options?: OrmTxnOptions
 ) {
-  const fname = `${client.ormAddress}::package::create_package`;
+  const fname: MoveFunctionId = `${client.ormAddress}::package::create_package`;
   const args: any[] = [package_name];
   const type_args: string[] = [];
   return await client.generateOrmTxn(
     [user],
     {
       function: fname,
-      type_arguments: type_args,
-      arguments: args,
+      typeArguments: type_args,
+      functionArguments: args,
     },
     options
   );
@@ -46,8 +62,8 @@ export async function createPackageTxn(
 
 export async function publishPackageTxn(
   client: OrmClient,
-  user: AptosAccount | MaybeHexString,
-  package_address: MaybeHexString,
+  user: Account | AccountAddressInput,
+  package_address: AccountAddressInput,
   metadata: Uint8Array,
   code_indices: (bigint | number | string)[],
   code_chunks: Uint8Array[],
@@ -55,15 +71,15 @@ export async function publishPackageTxn(
   cleanup: boolean,
   options?: OrmTxnOptions
 ) {
-  const fname = `${client.ormAddress}::package::publish_package`;
+  const fname: MoveFunctionId = `${client.ormAddress}::package::publish_package`;
   const args: any[] = [package_address, metadata, code_indices, code_chunks, publish, cleanup];
   const type_args: string[] = [];
   return await client.generateOrmTxn(
     [user],
     {
       function: fname,
-      type_arguments: type_args,
-      arguments: args,
+      typeArguments: type_args,
+      functionArguments: args,
     },
     options
   );
@@ -71,7 +87,7 @@ export async function publishPackageTxn(
 
 export async function createAndPublishPackageTxn(
   client: OrmClient,
-  user: AptosAccount | MaybeHexString,
+  user: Account | AccountAddressInput,
   package_name: string,
   metadata: Uint8Array,
   code_indices: (bigint | number | string)[],
@@ -80,15 +96,15 @@ export async function createAndPublishPackageTxn(
   cleanup: boolean,
   options?: OrmTxnOptions
 ) {
-  const fname = `${client.ormAddress}::package::create_and_publish_package`;
+  const fname: MoveFunctionId = `${client.ormAddress}::package::create_and_publish_package`;
   const args: any[] = [package_name, metadata, code_indices, code_chunks, publish, cleanup];
   const type_args: string[] = [];
   return await client.generateOrmTxn(
     [user],
     {
       function: fname,
-      type_arguments: type_args,
-      arguments: args,
+      typeArguments: type_args,
+      functionArguments: args,
     },
     options
   );
@@ -96,9 +112,9 @@ export async function createAndPublishPackageTxn(
 
 export async function mayCreateAndPublishPackageTxn(
   client: OrmClient,
-  user: AptosAccount | MaybeHexString,
+  user: Account | AccountAddressInput,
   package_name: string,
-  package_address: MaybeHexString,
+  package_address: AccountAddressInput,
   metadata: Uint8Array,
   code_indices: (bigint | number | string)[],
   code_chunks: Uint8Array[],
@@ -109,7 +125,10 @@ export async function mayCreateAndPublishPackageTxn(
   let package_created = undefined;
   if (cleanup) {
     package_created = await client
-      .getAccountResource(package_address, `${client.ormAddress}::orm_creator::OrmCreator`)
+      .getAccountResource({
+        accountAddress: package_address,
+        resourceType: `${client.ormAddress}::orm_creator::OrmCreator`,
+      })
       .catch(() => undefined);
   }
   if (!package_created) {
@@ -196,7 +215,7 @@ export function generatePackage(config: OrmPackageConfig) {
  */
 export async function publishPackageTxns(
   client: OrmClient,
-  user: AptosAccount,
+  user: Account,
   config: Pick<OrmPackageConfig, 'package_creator' | 'package_name' | 'package_move_path' | 'named_addresses'>,
   options?: OrmTxnOptions
 ) {
@@ -222,14 +241,14 @@ export async function publishPackageTxns(
   const modules: any[] = [];
   const modules_bytes: Uint8Array[] = [];
   const _metadata = fs.readFileSync(mpath);
-  const mbytes = new HexString(_metadata.toString('hex')).toUint8Array();
+  const mbytes = Hex.fromString(_metadata.toString('hex')).toUint8Array();
   let total_size = mbytes.length;
   const files = retrieveFilesInDir(path.join(package_move_path, 'build', packageName, 'bytecode_modules'), [
     'dependencies',
   ]);
   for (const file of files) {
     const moduleData = fs.readFileSync(file);
-    const moduleBytes = new HexString(moduleData.toString('hex')).toUint8Array();
+    const moduleBytes = Hex.fromString(moduleData.toString('hex')).toUint8Array();
     total_size += moduleBytes.length;
     modules.push(new TxnBuilderTypes.Module(moduleBytes));
     modules_bytes.push(moduleBytes);

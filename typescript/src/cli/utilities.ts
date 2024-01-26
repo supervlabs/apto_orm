@@ -16,8 +16,8 @@ export function loadOrmClient(program: Command) {
   if (!node_url) {
     throw new Error('node_url not specified in cli or env $APTOS_NODE_URL');
   }
-  if (prepay_url) return new OrmFreePrepayClient({ aptos_node_url: node_url, fee_free_url: prepay_url });
-  else if (postpay_url) return new OrmFreePostpayClient({ aptos_node_url: node_url, fee_free_url: postpay_url });
+  if (prepay_url) return new OrmFreePrepayClient({ aptos_node_url: node_url, url: prepay_url });
+  else if (postpay_url) return new OrmFreePostpayClient({ aptos_node_url: node_url, url: postpay_url });
   return new OrmClient(node_url);
 }
 

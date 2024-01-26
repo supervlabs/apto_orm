@@ -39,7 +39,7 @@ describe("FreeFeeObject", () => {
   test("generate fee_free_object object resource", async () => {
     const client = new orm.OrmFreePostpayClient({
       aptos_node_url: process.env.APTOS_NODE_URL,
-      fee_free_url: "http://localhost:5678"
+      url: "http://localhost:5678"
     });
     console.log("user", user.address().toShortString());
 

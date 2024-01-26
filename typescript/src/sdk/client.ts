@@ -1,6 +1,7 @@
 import {
   Aptos,
   AptosConfig,
+  ClientConfig,
   Network,
   MoveType,
   MoveValue,
@@ -45,43 +46,42 @@ import {
 import { getOrmClassMetadata } from './metadata';
 
 export class OrmClient extends Aptos {
-  // private static check(obj: unknown, name: string) {
-  //     return (
-  //         typeof obj === "object" &&
-  //         obj !== null &&
-  //         (obj as { "@instanceof": Symbol })["@instanceof"] ===
-  //             Symbol.for(name)
-  //     )
-  // }
   readonly '@instanceof' = Symbol.for('OrmClient');
   private _ORM_ADDRESS: string;
   private _ORM_EVENT_TYPE: string;
   private _ORM_OBJECT_TYPE: string;
-  // constructor(url_or_config: string, config?: ClientConfig);
-  constructor(url_or_config: any) {
-    let c: AptosConfig;
-    if (url_or_config === undefined) {
+  constructor(url_or_config: string);
+  constructor(config: AptosConfig);
+  constructor(config: AptosConfig | string | undefined) {
+    let _config: AptosConfig;
+    if (config === undefined) {
       throw new Error('Target network or config is not defined');
-    } else if (url_or_config instanceof AptosConfig) {
-      c = url_or_config;
-    } else if (typeof url_or_config === 'string') {
-      if (url_or_config.includes('testnet')) {
-        c = new AptosConfig({ network: Network.TESTNET });
-      } else if (url_or_config.includes('mainnet')) {
-        c = new AptosConfig({ network: Network.MAINNET });
-      } else if (url_or_config.includes('devnet')) {
-        c = new AptosConfig({ network: Network.DEVNET });
-      } else if (url_or_config.includes('http')) {
-        c = new AptosConfig({ network: Network.LOCAL });
+    } else if (config instanceof AptosConfig) {
+      _config = config;
+    } else if (typeof config === 'string') {
+      if (config.includes('testnet')) {
+        _config = new AptosConfig({ network: Network.TESTNET });
+      } else if (config.includes('mainnet')) {
+        _config = new AptosConfig({ network: Network.MAINNET });
+      } else if (config.includes('devnet')) {
+        _config = new AptosConfig({ network: Network.DEVNET });
+      } else if (config.includes('http')) {
+        _config = new AptosConfig({ network: Network.LOCAL });
       }
     }
-    if (c === undefined) {
+    if (_config === undefined) {
       throw new Error('Target network or config is not defined');
     }
-    super(c);
+    super(_config);
     this._ORM_ADDRESS = getOrmAddress();
     this._ORM_EVENT_TYPE = `${this._ORM_ADDRESS}::orm_class::OrmEvent`;
     this._ORM_OBJECT_TYPE = `${this._ORM_ADDRESS}::orm_object::OrmObject`;
+  }
+
+  private static check(obj: unknown, name: string) {
+    return (
+      typeof obj === 'object' && obj !== null && (obj as { '@instanceof': Symbol })['@instanceof'] === Symbol.for(name)
+    );
   }
 
   get ormAddress() {
@@ -102,7 +102,7 @@ export class OrmClient extends Aptos {
   }
 
   async generateOrmTxn(
-    signers: (Account | AccountAddress)[],
+    signers: (Account | AccountAddressInput)[],
     payload: OrmFunctionPayload,
     options?: OrmTxnOptions
   ): Promise<OrmTxn> {
@@ -151,7 +151,7 @@ export class OrmClient extends Aptos {
     return { type, txn, auths, payer_auth };
   }
 
-  async signOrmTxn(signers: (Account | AccountAddress)[], ormtxn: OrmTxn, options?: Pick<OrmTxnOptions, 'payer'>) {
+  async signOrmTxn(signers: (Account | AccountAddressInput)[], ormtxn: OrmTxn, options?: Pick<OrmTxnOptions, 'payer'>) {
     const auths = ormtxn.auths;
     for (let i = 0; i < auths.length; i++) {
       if (auths[i]) continue;
@@ -219,7 +219,7 @@ export class OrmClient extends Aptos {
   }
 
   async signAndsubmitOrmTxn(
-    signers: (Account | AccountAddress)[],
+    signers: (Account | AccountAddressInput)[],
     ormtxn: OrmTxn,
     options?: Pick<OrmTxnOptions, 'payer'>
   ) {
@@ -228,7 +228,7 @@ export class OrmClient extends Aptos {
   }
 
   async signAndsubmitOrmTxns(
-    signers: (Account | AccountAddress)[],
+    signers: (Account | AccountAddressInput)[],
     ormtxns: OrmTxn[],
     options?: Pick<OrmTxnOptions, 'payer'>
   ) {
@@ -265,7 +265,7 @@ export class OrmClient extends Aptos {
   }
 
   async signSubmitAndWaitOrmTxn(
-    signers: (Account | AccountAddress)[],
+    signers: (Account | AccountAddressInput)[],
     ormtxn: OrmTxn,
     options?: Pick<OrmTxnOptions, 'payer'>,
     extrargs?: {
@@ -280,7 +280,7 @@ export class OrmClient extends Aptos {
   }
 
   async signSubmitAndWaitOrmTxns(
-    signers: (Account | AccountAddress)[],
+    signers: (Account | AccountAddressInput)[],
     ormtxns: OrmTxn[],
     options?: Pick<OrmTxnOptions, 'payer'>,
     extrargs?: {
@@ -299,7 +299,7 @@ export class OrmClient extends Aptos {
   }
 
   async signSubmitAndWaitOrmTxnWithResult(
-    signers: (Account | AccountAddress)[],
+    signers: (Account | AccountAddressInput)[],
     ormtxn: OrmTxn,
     options?: Pick<OrmTxnOptions, 'payer'>,
     extrargs?: {
@@ -313,7 +313,7 @@ export class OrmClient extends Aptos {
   }
 
   async signSubmitAndWaitOrmTxnsWithResult(
-    signers: (Account | AccountAddress)[],
+    signers: (Account | AccountAddressInput)[],
     ormtxns: OrmTxn[],
     options?: Pick<OrmTxnOptions, 'payer'>,
     extrargs?: {
@@ -354,7 +354,7 @@ export class OrmClient extends Aptos {
   }
 
   async createTxn<OrmObject extends OrmObjectLiteral>(
-    user: Account | AccountAddress,
+    user: Account | AccountAddressInput,
     obj: OrmObjectTarget<OrmObject>,
     options?: OrmTxnOptions
   ) {
@@ -392,7 +392,7 @@ export class OrmClient extends Aptos {
   }
 
   async createToTxn<OrmObject extends OrmObjectLiteral>(
-    user: Account | AccountAddress,
+    user: Account | AccountAddressInput,
     obj: OrmObjectTarget<OrmObject>,
     to: AccountAddressInput,
     options?: OrmTxnOptions
@@ -424,7 +424,7 @@ export class OrmClient extends Aptos {
   }
 
   async updateTxn<OrmObject extends OrmObjectLiteral>(
-    user: Account | AccountAddress,
+    user: Account | AccountAddressInput,
     obj: OrmObjectTarget<OrmObject>,
     options?: OrmTxnOptions
   ) {
@@ -446,7 +446,7 @@ export class OrmClient extends Aptos {
   }
 
   async deleteTxn<OrmObject extends OrmObjectLiteral>(
-    user: Account | AccountAddress,
+    user: Account | AccountAddressInput,
     obj: OrmObjectTarget<OrmObject>,
     options?: OrmTxnOptions
   ) {
@@ -454,7 +454,7 @@ export class OrmClient extends Aptos {
   }
 
   async transferCoinsTxn(
-    sender: Account | AccountAddress,
+    sender: Account | AccountAddressInput,
     receiver: AccountAddressInput,
     amount: number | bigint,
     options?: OrmTxnOptions
