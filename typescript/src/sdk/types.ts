@@ -2,11 +2,11 @@ import 'reflect-metadata';
 import {
   MoveType,
   MoveValue,
+  Account,
   AccountAddress,
   AccountAddressInput,
   Hex,
   HexInput,
-  Account,
   InputGenerateTransactionPayloadData,
   InputGenerateTransactionOptions,
   PendingTransactionResponse,
@@ -16,6 +16,12 @@ import {
   AccountAuthenticator,
   EntryFunctionArgumentTypes,
 } from '@aptos-labs/ts-sdk';
+
+export { MoveType, MoveValue };
+export { Account, AccountAddress, AccountAddressInput, Hex, HexInput };
+export { InputGenerateTransactionPayloadData, InputGenerateTransactionOptions, PendingTransactionResponse };
+export { AnyRawTransaction, SimpleTransaction, MultiAgentTransaction, AccountAuthenticator };
+export { EntryFunctionArgumentTypes };
 
 export type NamedAddresses = { [named_address: string]: AccountAddress };
 

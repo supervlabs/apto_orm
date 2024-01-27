@@ -3,16 +3,19 @@ import orm, { OrmClass, OrmField, OrmIndexField, snakeToCamel, loadNamedAddresse
 import path from 'path';
 import fs from 'fs';
 
-const package_name = 'object_test';
+const package_name = 'indexed_object_test';
 const package_creator = orm.loadAccountFromPrivatekeyFile('../.key/user');
-const package_move_path = path.join(__dirname, '.move/object_test');
+const package_move_path = path.join(__dirname, '.move/indexed_object_test');
 
 @OrmClass({
   package_name,
   package_creator,
   deletable_by_owner: true,
 })
-export class PostObject {
+export class Board {
+  @OrmIndexField()
+  id!: number;
+
   @OrmField({ type: 'String' })
   title!: string;
 
@@ -25,10 +28,10 @@ export class PostObject {
   @OrmField({ type: 'u32' })
   like!: number;
 
-  constructor(fields?: Partial<PostObject>) {
+  constructor(fields?: Partial<Board>) {
     if (fields) {
       for (const key in fields) {
-        (this as any)[key] = fields[key as keyof PostObject];
+        (this as any)[key] = fields[key as keyof Board];
       }
     }
   }
@@ -52,11 +55,11 @@ describe('AptoORM Object', () => {
       package_creator: package_creator,
       package_name,
       package_move_path,
-      ormobjs: [PostObject],
+      ormobjs: [Board],
       local_apto_orm_package: path.join(__dirname, '../../../move/apto_orm'),
     };
     orm.generatePackage(package_config);
-    expect(fs.existsSync(`${package_move_path}/sources/post_object.move`)).toBe(true);
+    expect(fs.existsSync(`${package_move_path}/sources/board.move`)).toBe(true);
     orm.compilePackage({ package_move_path });
     expect(fs.existsSync(`${package_move_path}/build/${snakeToCamel(package_name, true)}/package-metadata.bcs`)).toBe(
       true
@@ -70,13 +73,15 @@ describe('AptoORM Object', () => {
     console.log(`package published to ${package_address.toString()}`);
 
     // 3. create objects
-    const a = new PostObject();
+    const a = new Board();
+    a.id = Math.floor(Math.random() * 1000000);
     a.title = 'First board title';
     a.body = 'First board description';
     a.like = 10;
     expect(a.title).toBe('First board title');
 
-    const b: PostObject = new PostObject({
+    const b: Board = new Board({
+      id: Math.floor(Math.random() * 1000000),
       title: '2th title',
       body: '2th description',
       updated_at: new Date(),
@@ -84,7 +89,8 @@ describe('AptoORM Object', () => {
     });
     expect(b.title).toBe('2th title');
 
-    const c: PostObject = new PostObject({
+    const c: Board = new Board({
+      id: Math.floor(Math.random() * 1000000),
       title: '3th title',
       body: '3th description',
       updated_at: new Date(),
@@ -100,17 +106,17 @@ describe('AptoORM Object', () => {
     console.log('createTxn', txnr.hash);
     console.log('retrieveOrmObjectAddressFromTxnr', a_address);
     expect(async () => {
-      await client.getObject({ object: PostObject, address: a_address }, true);
+      await client.getObject({ object: Board, address: a_address }, true);
     }).not.toThrow();
 
     txn = await client.createTxn(package_creator, b);
     ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
     txnr = await client.waitForOrmTxnWithResult(ptxn);
-    const b_address = client.retrieveOrmObjectAddressFromTxnr(txnr, { object_type: PostObject });
+    const b_address = client.retrieveOrmObjectAddressFromTxnr(txnr, { object_type: Board });
     console.log('createTxn', txnr.hash);
     console.log('retrieveOrmObjectAddressFromTxnr', b_address);
     expect(async () => {
-      await client.getObject({ object: PostObject, address: b_address }, true);
+      await client.getObject({ object: Board, address: b_address }, true);
     }).not.toThrow();
 
     txn = await client.createToTxn(package_creator, c, '0xffff');
@@ -120,7 +126,7 @@ describe('AptoORM Object', () => {
     console.log('createToTxn', txnr.hash);
     console.log('retrieveOrmObjectAddressFromTxnr', c_address);
     expect(async () => {
-      await client.getObject({ object: PostObject, address: c_address }, true);
+      await client.getObject({ object: Board, address: c_address }, true);
     }).not.toThrow();
 
     // 5. update the objects
@@ -135,11 +141,7 @@ describe('AptoORM Object', () => {
     console.log('updateTxn', txnr.hash);
 
     // 6. delete the objects
-    // To delete an object, you need to specify the object type and address.
-    txn = await client.deleteTxn(package_creator, {
-      object: a,
-      address: a_address,
-    });
+    txn = await client.deleteTxn(package_creator, a);
     ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
     txnr = await client.waitForOrmTxnWithResult(ptxn, {
       timeoutSecs: 30,
