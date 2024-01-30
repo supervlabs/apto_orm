@@ -195,7 +195,7 @@ export type OrmTxn = {
   payer_auth?: AccountAuthenticator | null;
 };
 
-// export type HexEncodedBytes = Types.HexEncodedBytes;
+export type HexEncodedBytes = string;
 // export type OrmTxnSerialized = {
 //   type: 'raw' | 'multi-agent' | 'fee-payer';
 //   txn: HexEncodedBytes;

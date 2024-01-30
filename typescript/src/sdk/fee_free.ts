@@ -1,37 +1,38 @@
-// import {
-//   Aptos,
-//   AptosConfig,
-//   ClientConfig,
-//   Network,
-//   MoveType,
-//   MoveValue,
-//   AccountAddress,
-//   AccountAddressInput,
-//   Hex,
-//   HexInput,
-//   Account,
-//   InputGenerateTransactionPayloadData,
-//   InputGenerateTransactionOptions,
-//   PendingTransactionResponse,
-//   AnyRawTransaction,
-//   SimpleTransaction,
-//   MultiAgentTransaction,
-//   AccountAuthenticator,
-//   EntryFunctionArgumentTypes,
-// } from '@aptos-labs/ts-sdk';
-// import axios, { isAxiosError } from 'axios';
-// import { OrmTxn, PendingTransaction, OrmFunctionPayload, OrmTxnOptions, FeeFreeOrmTxnOptions } from './types';
+import {
+  Aptos,
+  AptosConfig,
+  ClientConfig,
+  Network,
+  MoveType,
+  MoveValue,
+  AccountAddress,
+  AccountAddressInput,
+  Hex,
+  HexInput,
+  Account,
+  InputGenerateTransactionPayloadData,
+  InputGenerateTransactionOptions,
+  PendingTransactionResponse,
+  AnyRawTransaction,
+  SimpleTransaction,
+  MultiAgentTransaction,
+  AccountAuthenticator,
+  EntryFunctionArgumentTypes,
+} from '@aptos-labs/ts-sdk';
+import axios, { isAxiosError } from 'axios';
+import { OrmTxn, PendingTransaction, OrmFunctionPayload, OrmTxnOptions, FeeFreeOrmTxnOptions } from './types';
+import { toAddress } from './utilities';
 // import { serializeArgument, hexEncodedBytesToUint8Array, toAddress } from './utilities';
-// import { OrmClient } from './client';
+import { OrmClient } from './client';
 
-// export type FeeFreeConfig = {
-//   url: string;
-//   headers: Record<string, string | number | boolean>;
-// };
+export type FeeFreeSettings = {
+  readonly feeFree?: string;
+  readonly feeFreeHeader?: Record<string, string | number | boolean>;
+};
 
-// const axios_header = {
-//   'Content-Type': 'application/json',
-// };
+const axios_header = {
+  'Content-Type': 'application/json',
+};
 
 // export function serializeOrmTxn(ormtxn: OrmTxn) {
 //   if (!ormtxn) throw new Error('ormtxn is undefined');
@@ -101,130 +102,125 @@
 //   }
 // }
 
-// /** OrmFreePrepayClient is a client that can generate transaction and return the signed transaction
-//  * before user signs it. */
-// export class OrmFreePrepayClient extends OrmClient {
-//   private FEE_FREE_URL?: string;
-//   private FEE_FREE_HEADERS?: Record<string, string | number | boolean>;
+/** OrmFreePrepayClient is a client that can generate transaction and return the signed transaction
+ * before user signs it. */
+export class OrmFreePrepayClient extends OrmClient {
+  private feeFree?: string;
+  private feeFreeHeader?: Record<string, string | number | boolean>;
 
-//   constructor(config: AptosConfig, ffconfig: FeeFreeConfig) {
-//     super(config);
-//     if (ffconfig.url) {
-//       this.FEE_FREE_URL = ffconfig.url;
-//     }
-//     if (ffconfig.headers) {
-//       this.FEE_FREE_HEADERS = ffconfig.headers;
-//     }
-//   }
+  constructor(config: AptosConfig, settings?: FeeFreeSettings) {
+    super(config);
+    if (settings.feeFree) {
+      this.feeFree = settings.feeFree;
+    }
+    if (settings.feeFreeHeader) {
+      this.feeFreeHeader = settings.feeFreeHeader;
+    }
+  }
 
-//   async createAccount(address: Account | AccountAddressInput) {
-//     if (!this.FEE_FREE_URL) {
-//       throw new Error('free fee url is undefined');
-//     }
-//     const url = this.FEE_FREE_URL + `/fee_free/create_account/${toAddress(address).toString()}`;
-//     const resp = await axios.post(url, null);
-//     return resp.data as PendingTransaction;
-//   }
+  async createAccount(address: Account | AccountAddressInput) {
+    if (!this.feeFree) {
+      throw new Error('free fee url is undefined');
+    }
+    const url = this.feeFree + `/feeFree/create_account/${toAddress(address).toString()}`;
+    const resp = await axios.post(url, null);
+    return resp.data as PendingTransaction;
+  }
 
-//   async generateOrmTxn(
-//     signers: (Account | AccountAddressInput)[],
-//     payload: OrmFunctionPayload,
-//     options?: FeeFreeOrmTxnOptions
-//   ) {
-//     if (!this.FEE_FREE_URL) {
-//       throw new Error('free fee url is undefined');
-//     }
-//     try {
-//       const url = this.FEE_FREE_URL + '/fee_free/generate_txn';
-//       const _options: FeeFreeOrmTxnOptions = {
-//         accountSequenceNumber: options.accountSequenceNumber,
-//         expireTimestamp: options.expireTimestamp,
-//       };
-//       const response = await axios.post(
-//         url,
-//         {
-//           signers: signers.map((s) => {
-//             return toAddress(s).toString();
-//           }),
-//           payload: {
-//             function: payload.function,
-//             typeArguments: payload.typeArguments,
-//             functionArguments: payload.functionArguments.map((arg) => {
-//               return serializeArgument(arg);
-//             }),
-//           },
-//           options: _options,
-//         },
-//         { headers: axios_header }
-//       );
-//       const txn = deserializeOrmTxn(response.data as OrmTxnSerialized);
-//       return this.signOrmTxn(signers, txn);
-//     } catch (err) {
-//       if (isAxiosError(err)) {
-//         console.error(err.response?.data);
-//         throw new Error(err.response?.data);
-//       }
-//       throw err;
-//     }
-//   }
-// }
+  async generateOrmTxn(
+    signers: (Account | AccountAddressInput)[],
+    payload: OrmFunctionPayload,
+    options?: FeeFreeOrmTxnOptions
+  ) {
+    if (!this.feeFree) {
+      throw new Error('free fee url is undefined');
+    }
+    try {
+      const url = this.feeFree + '/feeFree/generate_txn';
+      const _options: FeeFreeOrmTxnOptions = {
+        accountSequenceNumber: options.accountSequenceNumber,
+        expireTimestamp: options.expireTimestamp,
+      };
+      const response = await axios.post(
+        url,
+        {
+          signers: signers.map((s) => {
+            return toAddress(s).toString();
+          }),
+          payload,
+          options: _options,
+        },
+        { headers: axios_header }
+      );
+      return response.data as OrmTxn;
+      //   const txn = deserializeOrmTxn(response.data as OrmTxnSerialized);
+      //   return this.signOrmTxn(signers, txn);
+    } catch (err) {
+      if (isAxiosError(err)) {
+        console.error(err.response?.data);
+        throw new Error(err.response?.data);
+      }
+      throw err;
+    }
+  }
+}
 
-// /** OrmFreePostpayClient is a client that signs and submits the transaction after user signing */
-// export class OrmFreePostpayClient extends OrmClient {
-//   private FEE_FREE_URL?: string;
-//   private FEE_FREE_HEADERS?: Record<string, string | number | boolean>;
+/** OrmFreePostpayClient is a client that signs and submits the transaction after user signing */
+export class OrmFreePostpayClient extends OrmClient {
+  private feeFree?: string;
+  private feeFreeHeader?: Record<string, string | number | boolean>;
 
-//   constructor(config: FeeFreeConfig) {
-//     super(config.aptos_node_url, config?.aptos_node_config);
-//     if (config.url) {
-//       this.FEE_FREE_URL = config.url;
-//     }
-//     if (config.fee_free_headers) {
-//       this.FEE_FREE_HEADERS = config.fee_free_headers;
-//     }
-//   }
+  constructor(config: AptosConfig, settings?: FeeFreeSettings) {
+    super(config);
+    if (settings.feeFree) {
+      this.feeFree = settings.feeFree;
+    }
+    if (settings.feeFreeHeader) {
+      this.feeFreeHeader = settings.feeFreeHeader;
+    }
+  }
 
-//   async createAccount(address: AptosAccount | MaybeHexString) {
-//     if (!this.FEE_FREE_URL) {
-//       throw new Error('free fee url is undefined');
-//     }
-//     const url = this.FEE_FREE_URL + `/fee_free/create_account/${toAddress(address).toShortString()}`;
-//     const resp = await axios.post(url, null);
-//     return resp.data as Types.PendingTransaction;
-//   }
+  async createAccount(address: Account | AccountAddressInput) {
+    if (!this.feeFree) {
+      throw new Error('free fee url is undefined');
+    }
+    const url = this.feeFree + `/feeFree/create_account/${toAddress(address).toString()}`;
+    const resp = await axios.post(url, null);
+    return resp.data as PendingTransaction;
+  }
 
-//   async submitOrmTxn(ormtxn: OrmTxn) {
-//     if (!this.FEE_FREE_URL) {
-//       throw new Error('free fee url is undefined');
-//     }
-//     const url = this.FEE_FREE_URL + '/fee_free/sign_and_submit_txn';
-//     const serialized = serializeOrmTxn(ormtxn);
-//     try {
-//       const response = await axios.post(url, serialized, { headers: axios_header });
-//       return response.data as Types.PendingTransaction;
-//     } catch (err) {
-//       if (isAxiosError(err)) {
-//         console.error(err.response?.data);
-//         throw new Error(err.response?.data);
-//       }
-//       throw err;
-//     }
-//   }
+  async submitOrmTxn(ormtxn: OrmTxn) {
+    if (!this.feeFree) {
+      throw new Error('free fee url is undefined');
+    }
+    const url = this.feeFree + '/feeFree/sign_and_submit_txn';
+    // const serialized = serializeOrmTxn(ormtxn);
+    try {
+      const response = await axios.post(url, ormtxn, { headers: axios_header });
+      return response.data as PendingTransaction;
+    } catch (err) {
+      if (isAxiosError(err)) {
+        console.error(err.response?.data);
+        throw new Error(err.response?.data);
+      }
+      throw err;
+    }
+  }
 
-//   async retrievePayer() {
-//     if (!this.FEE_FREE_URL) {
-//       throw new Error('free fee url is undefined');
-//     }
-//     const url = this.FEE_FREE_URL + '/fee_free';
-//     try {
-//       const response = await axios.get(url);
-//       return response.data as { payer: string };
-//     } catch (err) {
-//       if (isAxiosError(err)) {
-//         console.error(err.response?.data);
-//         throw new Error(err.response?.data);
-//       }
-//       throw err;
-//     }
-//   }
-// }
+  async retrievePayer() {
+    if (!this.feeFree) {
+      throw new Error('free fee url is undefined');
+    }
+    const url = this.feeFree + '/feeFree';
+    try {
+      const response = await axios.get(url);
+      return response.data as { payer: string };
+    } catch (err) {
+      if (isAxiosError(err)) {
+        console.error(err.response?.data);
+        throw new Error(err.response?.data);
+      }
+      throw err;
+    }
+  }
+}

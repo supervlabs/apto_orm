@@ -2,12 +2,12 @@ export * from './types';
 export * from './metadata';
 export * from './packages';
 export { OrmClient } from './client';
-// export {
+export {
 //   serializeOrmTxn,
 //   deserializeOrmTxn,
-//   FeeFreeConfig,
-//   OrmFreePostpayClient,
-//   OrmFreePrepayClient,
-// } from './fee_free';
+  FeeFreeConfig,
+  OrmFreePostpayClient,
+  OrmFreePrepayClient,
+} from './fee_free';
 export * from './utilities';
 export * from './poa';

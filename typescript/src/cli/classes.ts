@@ -1,8 +1,8 @@
 import { getPackageAddress, toAddress } from '../sdk';
-import { AptosAccount, MaybeHexString } from 'aptos';
+import { AccountAddressInput, Account } from '@aptos-labs/ts-sdk';
 
 export function loadBaseObjectString(
-  package_creator: AptosAccount | MaybeHexString,
+  package_creator: Account | AccountAddressInput,
   package_name: string,
   class_name: string
 ) {
@@ -10,8 +10,8 @@ export function loadBaseObjectString(
 import { OrmClass, OrmField, OrmIndexField } from 'apto_orm';
 
 @OrmClass({
-  package_address: '${getPackageAddress(package_creator, package_name).toShortString()}',
-  package_creator: '${toAddress(package_creator).toShortString()}',
+  package_address: '${getPackageAddress(package_creator, package_name).toString()}',
+  package_creator: '${toAddress(package_creator).toString()}',
   package_name: '${package_name}',
 })
 export class ${class_name} {
@@ -33,7 +33,7 @@ export class ${class_name} {
 }
 
 export function loadBaseTokenString(
-  package_creator: AptosAccount | MaybeHexString,
+  package_creator: Account | AccountAddressInput,
   package_name: string,
   class_name: string
 ) {
@@ -41,8 +41,8 @@ export function loadBaseTokenString(
 import { OrmTokenClass, OrmField, OrmIndexField } from 'apto_orm';
 
 @OrmTokenClass({
-  package_address: '${getPackageAddress(package_creator, package_name).toShortString()}',
-  package_creator: '${toAddress(package_creator).toShortString()}',
+  package_address: '${getPackageAddress(package_creator, package_name).toString()}',
+  package_creator: '${toAddress(package_creator).toString()}',
   package_name: '${package_name}',
   collection_name: 'AptoORM ${class_name}',
   collection_uri: 'https://raw.githubusercontent.com/neoul/apto_orm/main/resource.png',
@@ -55,10 +55,10 @@ import { OrmTokenClass, OrmField, OrmIndexField } from 'apto_orm';
 })
 export class ${class_name} {
   @OrmIndexField({ immutable: true })
-  id!: number;
-
-  @OrmField({ immutable: true })
   name!: string;
+
+  @OrmIndexField({ immutable: true })
+  id!: number;
 
   @OrmField()
   uri!: string;

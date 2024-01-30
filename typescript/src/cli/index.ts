@@ -11,7 +11,28 @@ import orm, {
   loadAccountFromPrivatekeyFile,
   toAddress,
 } from '../sdk';
-import { AptosAccount } from 'aptos';
+import {
+  Aptos,
+  AptosConfig,
+  ClientConfig,
+  Network,
+  MoveType,
+  MoveValue,
+  AccountAddress,
+  AccountAddressInput,
+  Hex,
+  HexInput,
+  Account,
+  InputGenerateTransactionPayloadData,
+  InputGenerateTransactionOptions,
+  PendingTransactionResponse,
+  AnyRawTransaction,
+  SimpleTransaction,
+  MultiAgentTransaction,
+  AccountAuthenticator,
+  EntryFunctionArgumentTypes,
+} from '@aptos-labs/ts-sdk';
+
 import yaml from 'yaml';
 import { loadBaseObjectString, loadBaseTokenString } from './classes';
 import { loadOrmClient, checkPackagePath, loadPackageClasses, getNodeUrl } from './utilities';
@@ -21,6 +42,7 @@ export const program = new Command();
 program.version('1.0.0');
 program.name('aptorm');
 program.description('Aptos Onchain Move ORM (Object–relational mapping)');
+program.option('  , --network <network>', 'The Aptos network to connect to');
 program.option('-n, --node_url <node_url>', 'Aptos Node URL');
 program.option('  , --prepay_url <prepay_url>', 'The free prepay URL');
 program.option('  , --postpay_url <postpay_url>', 'The free postpay URL');
@@ -37,25 +59,27 @@ program
       throw new Error('create-account is only supported in free prepay/postpay mode');
     }
     const { random_key, key } = this.opts();
-    let account: AptosAccount;
+    let account: Account;
     if (key) {
       account = loadAccountFromPrivatekeyFile(key);
     } else if (random_key) {
       if (fs.existsSync(path.resolve(process.cwd(), `.key/${random_key}`))) {
         account = loadAccountFromPrivatekeyFile(`.key/${random_key}`);
       } else {
-        account = new AptosAccount();
+        account = Account.generate();
         const dotkey = path.resolve(process.cwd(), `.key`);
         if (!fs.existsSync(dotkey)) {
           fs.mkdirSync(dotkey, { recursive: true });
         }
-        const keyobj = account.toPrivateKeyObject();
-        fs.writeFileSync(path.resolve(dotkey, `${random_key}`), keyobj.privateKeyHex.toUpperCase().slice(2));
-        fs.writeFileSync(path.resolve(dotkey, `${random_key}.pub`), keyobj.publicKeyHex.toUpperCase().slice(2));
+        fs.writeFileSync(path.resolve(dotkey, `${random_key}`), account.privateKey.toString().toUpperCase().slice(2));
+        fs.writeFileSync(
+          path.resolve(dotkey, `${random_key}.pub`),
+          account.publicKey.toString().toUpperCase().slice(2)
+        );
         console.log(`The package key file is generated to ${path.resolve(dotkey, `${random_key}`)}.`);
       }
     }
-    const pending = await client.createAccount(account.address().toShortString());
+    const pending = await client.createAccount(account.accountAddress);
     const txnr = await client.waitForOrmTxnWithResult(pending, { timeoutSecs: 30, checkSuccess: true });
     console.log(`txn: ${txnr.hash}`);
   });
@@ -75,27 +99,32 @@ program
     let package_name: string;
     let package_path: string = this.args[0];
     [package_path, package_name] = checkPackagePath(package_path);
-    let package_owner: AptosAccount;
+    let package_owner: Account;
     if (key) {
       package_owner = loadAccountFromPrivatekeyFile(key);
     } else if (random_key) {
       if (fs.existsSync(path.resolve(process.cwd(), `.key/${package_name}`))) {
         package_owner = loadAccountFromPrivatekeyFile(`.key/${package_name}`);
       } else {
-        package_owner = new AptosAccount();
+        package_owner = Account.generate();
       }
     }
     // load previous classes
     await loadPackageClasses(package_name, package_path, []);
-    const package_creator = getOrmPackageCreator(package_name) || package_owner.address();
-    const keyobj = package_owner.toPrivateKeyObject();
+    const package_creator = getOrmPackageCreator(package_name) || package_owner.accountAddress;
     if (random_key && !key) {
       const dotkey = path.resolve(process.cwd(), `.key`);
       if (!fs.existsSync(dotkey)) {
         fs.mkdirSync(dotkey, { recursive: true });
       }
-      fs.writeFileSync(path.resolve(dotkey, `${package_name}`), keyobj.privateKeyHex.toUpperCase().slice(2));
-      fs.writeFileSync(path.resolve(dotkey, `${package_name}.pub`), keyobj.publicKeyHex.toUpperCase().slice(2));
+      fs.writeFileSync(
+        path.resolve(dotkey, `${package_name}`),
+        package_owner.privateKey.toString().toUpperCase().slice(2)
+      );
+      fs.writeFileSync(
+        path.resolve(dotkey, `${package_name}.pub`),
+        package_owner.publicKey.toString().toUpperCase().slice(2)
+      );
       console.log(`The package key file is generated to ${path.resolve(dotkey, `${package_name}`)}.`);
     }
     if (update_profile) {
@@ -114,9 +143,9 @@ program
         };
       }
       content['profiles'][package_name] = {
-        private_key: keyobj.publicKeyHex,
-        public_key: keyobj.publicKeyHex,
-        account: toAddress(package_creator).noPrefix(),
+        private_key: package_owner.privateKey.toString(),
+        public_key: package_owner.publicKey.toString(),
+        account: toAddress(package_creator).toString(),
         rest_url: getNodeUrl(program),
       };
       fs.writeFileSync(path.resolve(dotaptos, `config.yaml`), '---\n' + yaml.stringify(content));
@@ -238,7 +267,7 @@ program
     }
     const package_name = path.basename(package_path);
     const package_owner = loadAccountFromPrivatekeyFile(key);
-    const package_creator = getOrmPackageCreator(package_name) || package_owner.address();
+    const package_creator = getOrmPackageCreator(package_name) || package_owner.accountAddress;
     const txns = await orm.publishPackageTxns(client, package_owner, {
       package_creator,
       package_name,
@@ -272,7 +301,7 @@ program
     let package_name: string;
     let package_path: string = this.args[0];
     [package_path, package_name] = checkPackagePath(package_path);
-    let package_owner: AptosAccount;
+    let package_owner: Account;
     if (!key) {
       throw new Error(`key file not specified`);
     }
@@ -318,7 +347,7 @@ program
     let package_name: string;
     let package_path: string = this.args[0];
     [package_path, package_name] = checkPackagePath(package_path);
-    let package_owner: AptosAccount;
+    let package_owner: Account;
     if (!key) {
       throw new Error(`key file not specified`);
     }
@@ -355,7 +384,7 @@ program
     let package_name: string;
     let package_path: string = this.args[0];
     [package_path, package_name] = checkPackagePath(package_path);
-    let package_owner: AptosAccount;
+    let package_owner: Account;
     if (!key) {
       throw new Error(`key file not specified`);
     }

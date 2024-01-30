@@ -22,7 +22,7 @@ import {
 import {
   OrmObjectConfig,
   NamedAddresses,
-  // HexEncodedBytes,
+  HexEncodedBytes,
   OrmObjectLiteral,
   OrmObjectTarget,
   OrmObjectType,
@@ -159,20 +159,20 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// export function hexEncodedBytesToUint8Array(b: HexEncodedBytes) {
-//   if (b === '0x') {
-//     return new Uint8Array(0);
-//   }
-//   try {
-//     return HexString.ensure(b).toUint8Array();
-//   } catch (err) {
-//     throw new Error(`invalid hex-encoded bytes: ${b}`);
-//   }
-// }
+export function hexEncodedBytesToUint8Array(b: HexEncodedBytes) {
+  if (b === '0x') {
+    return new Uint8Array(0);
+  }
+  try {
+    return Hex.fromString(b).toUint8Array();
+  } catch (err) {
+    throw new Error(`invalid hex-encoded bytes: ${b}`);
+  }
+}
 
-// export function uint8ArrayToHexEncodedBytes(arr: Uint8Array) {
-//   return HexString.fromUint8Array(arr).toString();
-// }
+export function uint8ArrayToHexEncodedBytes(arr: Uint8Array) {
+  return Hex.fromHexInput(arr).toString();
+}
 
 // export function serializeArgument(arg: any): any {
 //   if (arg instanceof HexString) {
@@ -194,27 +194,27 @@ export function sleep(ms: number): Promise<void> {
 //   return arg;
 // }
 
-// export function stringifyJson(obj: any, space: string | number = 0) {
-//   return JSON.stringify(
-//     obj,
-//     function (key, value) {
-//       if (value instanceof Uint8Array) {
-//         return 'vector<u8>::' + uint8ArrayToHexEncodedBytes(value);
-//       }
-//       return value;
-//     },
-//     space
-//   );
-// }
+export function stringifyJson(obj: any, space: string | number = 0) {
+  return JSON.stringify(
+    obj,
+    function (key, value) {
+      if (value instanceof Uint8Array) {
+        return 'vector<u8>::' + uint8ArrayToHexEncodedBytes(value);
+      }
+      return value;
+    },
+    space
+  );
+}
 
-// export function parseJson(str: string) {
-//   return JSON.parse(str, function (key, value) {
-//     if (typeof value === 'string' && value.startsWith('vector<u8>::')) {
-//       return hexEncodedBytesToUint8Array(value.slice('vector<u8>::'.length));
-//     }
-//     return value;
-//   });
-// }
+export function parseJson(str: string) {
+  return JSON.parse(str, function (key, value) {
+    if (typeof value === 'string' && value.startsWith('vector<u8>::')) {
+      return hexEncodedBytesToUint8Array(value.slice('vector<u8>::'.length));
+    }
+    return value;
+  });
+}
 
 export function areUint8ArraysEqual(arr1: Uint8Array, arr2: Uint8Array) {
   if (arr1.length !== arr2.length) {

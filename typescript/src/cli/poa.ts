@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import { loadOrmClient, checkPackagePath, loadPackageClasses } from './utilities';
-import { AptosAccount, Maybe, MaybeHexString } from 'aptos';
-import orm, { loadAccountFromPrivatekeyFile, parseJson, stringifyJson } from '../sdk';
+import orm, { AccountAddress, loadAccountFromPrivatekeyFile, parseJson, stringifyJson, toAddress } from '../sdk';
 import fs from 'fs';
 import path from 'path';
 
@@ -41,12 +40,12 @@ poa
     const client = loadOrmClient(this);
     const { designator, delegator, delegator_address, expiration, output } = this.opts();
     const package_owner_account = loadAccountFromPrivatekeyFile(designator);
-    let poa_address: MaybeHexString;
+    let poa_address: AccountAddress;
     if (delegator) {
       const poa_account = loadAccountFromPrivatekeyFile(delegator);
-      poa_address = poa_account.address();
+      poa_address = poa_account.accountAddress;
     } else if (delegator_address) {
-      poa_address = delegator_address;
+      poa_address = toAddress(delegator_address);
     } else {
       throw new Error('either delegator or delegator_address should be specified');
     }
@@ -89,12 +88,12 @@ poa
     const client = loadOrmClient(this);
     const { designator, delegator, delegator_address } = this.opts();
     const package_owner_account = loadAccountFromPrivatekeyFile(designator);
-    let poa_address: MaybeHexString;
+    let poa_address: AccountAddress;
     if (delegator) {
       const poa_account = loadAccountFromPrivatekeyFile(delegator);
-      poa_address = poa_account.address();
+      poa_address = poa_account.accountAddress;
     } else if (delegator_address) {
-      poa_address = delegator_address;
+      poa_address = toAddress(delegator_address);
     } else {
       throw new Error('either delegator or delegator_address should be specified');
     }
@@ -140,16 +139,19 @@ poa
   .action(async function () {
     const client = loadOrmClient(this);
     const { delegator, delegator_address } = this.opts();
-    let poa_address: MaybeHexString;
+    let poa_address: AccountAddress;
     if (delegator) {
       const poa_account = loadAccountFromPrivatekeyFile(delegator);
-      poa_address = poa_account.address();
+      poa_address = poa_account.accountAddress;
     } else if (delegator_address) {
-      poa_address = delegator_address;
+      poa_address = toAddress(delegator_address);
     } else {
       throw new Error('either delegator or delegator_address should be specified');
     }
-    const resource = await client.getAccountResource(poa_address, `${client.ormAddress}::power_of_attorney::PowerOfAttorney`);
+    const resource = await client.getAccountResource({
+      accountAddress: poa_address,
+      resourceType: `${client.ormAddress}::power_of_attorney::PowerOfAttorney`,
+    });
     console.log(resource);
   });
 

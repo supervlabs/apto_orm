@@ -5,17 +5,18 @@ import {
   OrmClient,
   OrmFreePostpayClient,
   OrmFreePrepayClient,
+  FeeFreeConfig,
   getOrmClass,
   getOrmClasses,
 } from '../sdk';
-// import * as ts from 'typescript';
 
 export function loadOrmClient(program: Command) {
-  let { node_url, prepay_url, postpay_url } = program.optsWithGlobals();
-  node_url = node_url || process.env.APTOS_NODE_URL;
-  if (!node_url) {
-    throw new Error('node_url not specified in cli or env $APTOS_NODE_URL');
-  }
+  let { network, node_url, prepay_url, postpay_url } = program.optsWithGlobals();
+  const config = new FeeFreeConfig({
+    network: network || (process.env.APTOS_NETWORK as any),
+    fullnode: node_url || process.env.APTOS_NODE_URL,
+  });
+
   if (prepay_url) return new OrmFreePrepayClient({ aptos_node_url: node_url, url: prepay_url });
   else if (postpay_url) return new OrmFreePostpayClient({ aptos_node_url: node_url, url: postpay_url });
   return new OrmClient(node_url);
