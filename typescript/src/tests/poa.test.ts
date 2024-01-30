@@ -60,8 +60,8 @@ describe('Power Of Attorney', () => {
 
     // create poa account
     const poa_account = orm.createAccount();
-    console.log('poa_account', poa_account.address());
-    let txn = await client.transferCoinsTxn(package_creator, poa_account.address(), 100000000n);
+    console.log('poa_account', poa_account.accountAddress.toString());
+    let txn = await client.transferCoinsTxn(package_creator, poa_account.accountAddress, 100000000n);
     let ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
     let txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
     console.log('transferCoinsTxn', txnr.hash);
@@ -69,12 +69,12 @@ describe('Power Of Attorney', () => {
     // init poa to onchain.
     const ticket = new orm.PowerOfAttorneyProof(
       await client.getChainId(),
-      poa_account.address(),
+      poa_account.accountAddress,
       0,
-      package_creator.address(),
+      package_creator.accountAddress,
       0
     );
-    console.log('ticket', ticket.generate(package_creator));
+    // console.log('ticket', ticket.generate(package_creator));
     txn = await orm.initPoaTxn(client, poa_account, ticket.generate(package_creator));
     ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
     txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });

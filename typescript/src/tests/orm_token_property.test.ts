@@ -91,8 +91,7 @@ describe('AptoORM Token Property', () => {
     console.log('myhero address', address);
 
     const myhero = await client.getObject<MyHeroToken>(my_hero_token, true);
-    console.log('myhero address', myhero[object_addr]);
-    console.log('myhero', getOrmObjectAddress(myhero));
+    console.log('myhero address', myhero[object_addr]?.toString());
 
     txn = await client.deleteTxn(package_creator, my_hero_token);
     ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);

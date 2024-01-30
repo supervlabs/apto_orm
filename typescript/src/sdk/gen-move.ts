@@ -121,7 +121,7 @@ export const initModule = (class_data: OrmClassMetadata) => {
       token_config.max_supply,
       token_config.token_use_property_map,
       token_config.royalty_present,
-      `${token_config.royalty_payee ? ensureAddressString(token_config.royalty_payee) : '0x0'}`,
+      `@${token_config.royalty_payee ? ensureAddressString(token_config.royalty_payee) : '0x0'}`,
       token_config.royalty_denominator,
       token_config.royalty_numerator,
     ];

@@ -72,7 +72,7 @@ export function loadAccountFromPrivatekeyFile(filepath: string): Account {
   return Account.fromPrivateKey({ privateKey });
 }
 
-export function createAccount(arg: GenerateAccount): Account {
+export function createAccount(arg?: GenerateAccount): Account {
   return Account.generate(arg);
 }
 
@@ -315,8 +315,15 @@ export function setOrmObjectAddress(ormobj: OrmObjectLiteral, address: AccountAd
 }
 
 export function getOrmObjectAddress(ormobj: OrmObjectLiteral) {
+  return getOrmObjectAccountAddress(ormobj)?.toString();
+}
+
+export function getOrmObjectAccountAddress(ormobj: OrmObjectLiteral) {
   if (typeof ormobj !== 'object') {
     throw new Error(`ormobj must be an object`);
   }
-  return (ormobj as any)[object_addr];
+  const address = (ormobj as any)[object_addr];
+  if (address) {
+    return address instanceof AccountAddress ? address : AccountAddress.from(address);
+  }
 }
