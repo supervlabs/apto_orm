@@ -1,13 +1,8 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import { loadOrmClient, checkPackagePath, loadPackageClasses } from './utilities';
-import { AptosAccount, Maybe, MaybeHexString } from 'aptos';
-import orm, {
-  getOrmPackageCreator,
-  getPackageAddress,
-  loadAccountFromPrivatekeyFile,
-} from '../sdk';
-import fs from 'fs';
+import { loadOrmClient } from './utilities';
+import { AccountAddressInput, Account } from '@aptos-labs/ts-sdk';
+import { getOrmPackageCreator, getPackageAddress, loadAccountFromPrivatekeyFile, toAddress } from '../sdk';
 import path from 'path';
 import YAML from 'yaml';
 
@@ -16,22 +11,21 @@ export function loadPackageAddress(program: Command) {
   const package_path = program.opts()?.path || program.args[0];
   let package_name = name || package_path ? path.basename(package_path) : undefined;
   let package_creator = creator;
-  let package_address: MaybeHexString = address as string;
-  // console.log({ package_path, package_name, package_creator, package_address});
+  let package_address: AccountAddressInput = address as string;
   if (!package_address) {
     if (creator && name) {
       package_address = getPackageAddress(creator, name);
     } else if (package_name) {
-      let package_owner: AptosAccount;
+      let package_owner: Account;
       if (key) {
         package_owner = loadAccountFromPrivatekeyFile(key);
-        package_address = getPackageAddress(package_owner.address(), package_name);
+        package_address = getPackageAddress(package_owner.accountAddress, package_name);
       } else {
         if (!package_creator) package_creator = getOrmPackageCreator(package_name);
         package_address = getPackageAddress(package_creator, package_name);
       }
     }
-    // console.log({ package_address })
+    // console.log({ package_address });
   }
   if (!package_creator) {
     if (package_name) package_creator = getOrmPackageCreator(package_name);
@@ -39,7 +33,7 @@ export function loadPackageAddress(program: Command) {
   if (!package_address) {
     throw new Error(`package address not specified`);
   }
-  return [package_creator, package_name, package_address] as [string, string, string];
+  return [toAddress(package_creator).toString(), package_name, toAddress(package_address).toString()];
 }
 
 export const retrieve = new Command('retrieve');
@@ -62,7 +56,7 @@ retrieve
       package_address,
       package_classes: {},
     };
-    const resources = await client.getAccountResources(package_address);
+    const resources = await client.getAccountResources({ accountAddress: package_address });
     for (const resource of resources) {
       if (resource.type.startsWith(`${client.ormAddress}::orm_module::OrmModule<`)) {
         const full_class_type = resource.type.split('<')[1].split('>')[0];

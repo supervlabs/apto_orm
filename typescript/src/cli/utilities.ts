@@ -5,21 +5,36 @@ import {
   OrmClient,
   OrmFreePostpayClient,
   OrmFreePrepayClient,
-  FeeFreeConfig,
+  FeeFreeSettings,
   getOrmClass,
   getOrmClasses,
 } from '../sdk';
+import { AptosConfig } from '@aptos-labs/ts-sdk';
 
 export function loadOrmClient(program: Command) {
-  let { network, node_url, prepay_url, postpay_url } = program.optsWithGlobals();
-  const config = new FeeFreeConfig({
+  let { network, node_url, node_api_key, node_headers, prepay_url, postpay_url, fee_free_headers } = program.optsWithGlobals();
+  const api_key = node_api_key || process.env.APTOS_NODE_API_KEY;
+  const headers: any = {};
+  (node_headers || process.env.APTOS_NODE_HEADERS || []).map((h: string) => {
+    const [k, v] = h.split(':').map((s) => s.trim());
+    headers[k] = v;
+  });
+  const config = new AptosConfig({
     network: network || (process.env.APTOS_NETWORK as any),
     fullnode: node_url || process.env.APTOS_NODE_URL,
+    clientConfig: api_key && headers.length > 0 ? { API_KEY:api_key, HEADERS: headers } : undefined,
   });
-
-  if (prepay_url) return new OrmFreePrepayClient({ aptos_node_url: node_url, url: prepay_url });
-  else if (postpay_url) return new OrmFreePostpayClient({ aptos_node_url: node_url, url: postpay_url });
-  return new OrmClient(node_url);
+  if (prepay_url)
+    return new OrmFreePrepayClient(config, {
+      feeFree: prepay_url,
+      feeFreeHeader: fee_free_headers,
+    });
+  else if (postpay_url)
+    return new OrmFreePostpayClient(config, {
+      feeFree: postpay_url,
+      feeFreeHeader: fee_free_headers,
+    });
+  return new OrmClient(config);
 }
 
 export function getNodeUrl(program: Command) {
