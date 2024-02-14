@@ -18,6 +18,7 @@ import {
   MultiAgentTransaction,
   AccountAuthenticator,
   EntryFunctionArgumentTypes,
+  AptosSettings,
 } from '@aptos-labs/ts-sdk';
 import {
   toAddress,
@@ -49,13 +50,12 @@ export class OrmClient extends Aptos {
   private _ORM_ADDRESS: string;
   private _ORM_EVENT_TYPE: string;
   private _ORM_OBJECT_TYPE: string;
-  constructor(network_or_url: string);
+  constructor(config: AptosSettings);
   constructor(config: AptosConfig);
-  constructor(config: AptosConfig | string | undefined) {
+  constructor(config: string);
+  constructor(config: AptosConfig | AptosSettings | string | undefined) {
     let _config: AptosConfig;
-    if (config === undefined) {
-      throw new Error('Target network or config is not defined');
-    } else if (config instanceof AptosConfig) {
+    if (config instanceof AptosConfig) {
       _config = config;
     } else if (typeof config === 'string') {
       const lowcase = config.toLowerCase();
@@ -67,9 +67,14 @@ export class OrmClient extends Aptos {
         _config = new AptosConfig({ network: Network.DEVNET });
       } else if (lowcase === 'randomnet') {
         _config = new AptosConfig({ network: Network.RANDOMNET });
+      } else if (lowcase === 'local') {
+        _config = new AptosConfig({ network: Network.LOCAL });
       } else {
-        _config = new AptosConfig({ fullnode: config });
+        // _config = new AptosConfig({ fullnode: config });
+        throw new Error('Target network or config is not defined');
       }
+    } else if (typeof config === 'object') {
+      _config = new AptosConfig(config);
     }
     if (_config === undefined) {
       throw new Error('Target network or config is not defined');

@@ -36,7 +36,7 @@ export class Membership {
 
 describe('AptoORM Token', () => {
   test('Test to define, generate, compile, publish and create AptoORM Token', async () => {
-    const client = new orm.OrmClient(process.env.APTOS_NODE_URL);
+    const client = new orm.OrmClient({ fullnode: 'http://localhost:8080/v1' });
     const package_config: orm.OrmPackageConfig = {
       package_creator: package_creator,
       package_name,
@@ -84,9 +84,7 @@ describe('AptoORM Token', () => {
     ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
     txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
 
-    expect(client.retrieveOrmObjectAddressFromTxnr(txnr, { event_type: 'deleted' })).toBe(
-      membership_address
-    );
+    expect(client.retrieveOrmObjectAddressFromTxnr(txnr, { event_type: 'deleted' })).toBe(membership_address);
     console.log('deleteTxn', txnr.hash);
   });
 });

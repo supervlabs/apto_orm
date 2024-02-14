@@ -49,7 +49,7 @@ export class MyHeroToken {
 
 describe('AptoORM Token Property', () => {
   test('Test to define, generate, compile, publish and create AptoORM Token Property', async () => {
-    const client = new orm.OrmClient(process.env.APTOS_NODE_URL);
+    const client = new orm.OrmClient('local');
     const package_config: orm.OrmPackageConfig = {
       package_creator: package_creator,
       package_name,

@@ -40,7 +40,7 @@ describe('AptoORM Object', () => {
   afterEach(() => {});
 
   it('Test to define, generate, compile, publish and create AptoORM Object', async () => {
-    const client = new orm.OrmClient(process.env.APTOS_NODE_URL);
+    const client = new orm.OrmClient('local');
 
     // 1. create an package account
     let txn = await orm.createPackageTxn(client, package_creator, package_name);

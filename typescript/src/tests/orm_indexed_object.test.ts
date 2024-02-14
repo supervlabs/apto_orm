@@ -2,6 +2,7 @@ import { describe, beforeEach, afterEach, expect, test, it } from '@jest/globals
 import orm, { OrmClass, OrmField, OrmIndexField, snakeToCamel, loadNamedAddresses } from '../sdk';
 import path from 'path';
 import fs from 'fs';
+import { AptosConfig, Network } from '@aptos-labs/ts-sdk';
 
 const package_name = 'indexed_object_test';
 const package_creator = orm.loadAccountFromPrivatekeyFile('../.key/user');
@@ -43,7 +44,8 @@ describe('AptoORM Object', () => {
   afterEach(() => {});
 
   it('Test to define, generate, compile, publish and create AptoORM Object', async () => {
-    const client = new orm.OrmClient(process.env.APTOS_NODE_URL);
+    const config = new AptosConfig({ network: Network.LOCAL });
+    const client = new orm.OrmClient(config);
 
     // 1. create an package account
     let txn = await orm.createPackageTxn(client, package_creator, package_name);

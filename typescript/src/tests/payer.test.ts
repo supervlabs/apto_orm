@@ -16,7 +16,7 @@ const package_name = 'payer_test';
 const package_creator = createAccount();
 const payer = orm.loadAccountFromPrivatekeyFile('../.key/payer');
 const package_move_path = path.join(__dirname, '.move/payer_test');
-const client = new orm.OrmClient(process.env.APTOS_NODE_URL);
+const client = new orm.OrmClient('local');
 
 @OrmClass({
   package_name,

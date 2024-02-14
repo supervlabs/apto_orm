@@ -31,7 +31,7 @@ export class PoaToken {
 
 describe('Power Of Attorney', () => {
   test('Init, register and revoke PoA', async () => {
-    const client = new orm.OrmClient(process.env.APTOS_NODE_URL);
+    const client = new orm.OrmClient('local');
 
     // generate, compile and publish a package
     const package_config: orm.OrmPackageConfig = {
