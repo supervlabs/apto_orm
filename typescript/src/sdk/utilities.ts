@@ -173,32 +173,32 @@ export function uint8ArrayToHexEncodedBytes(arr: Uint8Array) {
   return Hex.fromHexInput(arr).toString();
 }
 
-// export function serializeArgument(arg: any): any {
-//   if (arg instanceof HexString) {
-//     return arg.toShortString();
-//   } else if (arg instanceof Uint8Array) {
-//     return 'Uint8Array::' + uint8ArrayToHexEncodedBytes(arg);
-//   } else if (Array.isArray(arg)) {
-//     return arg.map(serializeArgument) as any;
-//   }
-//   return arg;
-// }
+export function serializeArgument(arg: any): any {
+  if (arg instanceof Hex) {
+    return arg.toString();
+  } else if (arg instanceof Uint8Array) {
+    return 'vector<u8>::' + uint8ArrayToHexEncodedBytes(arg);
+  } else if (Array.isArray(arg)) {
+    return arg.map(serializeArgument) as any;
+  }
+  return arg;
+}
 
-// export function deserializeArgument(arg: any): any {
-//   if (typeof arg === 'string' && arg.startsWith('Uint8Array::')) {
-//     return hexEncodedBytesToUint8Array(arg.slice('Uint8Array::'.length));
-//   } else if (Array.isArray(arg)) {
-//     return arg.map(deserializeArgument) as any;
-//   }
-//   return arg;
-// }
+export function deserializeArgument(arg: any): any {
+  if (typeof arg === 'string' && arg.startsWith('vector<u8>::')) {
+    return hexEncodedBytesToUint8Array(arg.slice('vector<u8>::'.length));
+  } else if (Array.isArray(arg)) {
+    return arg.map(deserializeArgument) as any;
+  }
+  return arg;
+}
 
 export function stringifyJson(obj: any, space: string | number = 0) {
   return JSON.stringify(
     obj,
     function (key, value) {
       if (value instanceof Uint8Array) {
-        return 'Uint8Array::' + uint8ArrayToHexEncodedBytes(value);
+        return 'vector<u8>::' + uint8ArrayToHexEncodedBytes(value);
       }
       return value;
     },
@@ -208,8 +208,8 @@ export function stringifyJson(obj: any, space: string | number = 0) {
 
 export function parseJson(str: string) {
   return JSON.parse(str, function (key, value) {
-    if (typeof value === 'string' && value.startsWith('Uint8Array::')) {
-      return hexEncodedBytesToUint8Array(value.slice('Uint8Array::'.length));
+    if (typeof value === 'string' && value.startsWith('vector<u8>::')) {
+      return hexEncodedBytesToUint8Array(value.slice('vector<u8>::'.length));
     }
     return value;
   });

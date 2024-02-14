@@ -3,8 +3,9 @@ export * from './metadata';
 export * from './packages';
 export { OrmClient } from './client';
 export {
-  //   serializeOrmTxn,
-  //   deserializeOrmTxn,
+  serializeOrmTxn,
+  deserializeOrmTxn,
+  SerializedOrmTxn,
   FeeFreeSettings,
   OrmFreePostpayClient,
   OrmFreePrepayClient,

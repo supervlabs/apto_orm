@@ -1,15 +1,20 @@
 import { describe, expect, test } from "@jest/globals";
 import orm, { ensureAddressString, sleep } from "apto_orm";
-import { OrmClass, OrmField, OrmIndexField, OrmFreePrepayClient } from "apto_orm";
+import {
+  OrmClass,
+  OrmField,
+  OrmIndexField,
+  OrmFreePrepayClient,
+} from "apto_orm";
 import path from "path";
+import { AptosConfig } from "@aptos-labs/ts-sdk";
 
 const package_name = "fee_free";
 const user = orm.createAccount();
 const package_move_path = path.join(__dirname, ".move/fee_free");
 
-
 @OrmClass({
-  package_creator: user.address().toShortString(),
+  package_creator: user.accountAddress,
   package_name,
   deletable_by_owner: true,
 })
@@ -37,27 +42,32 @@ export class FreeFeeObject {
 
 describe("OrmFreePrepayClient", () => {
   test("generate fee_free_object object resource", async () => {
-    const client = new orm.OrmFreePrepayClient({
-      aptos_node_url: process.env.APTOS_NODE_URL,
-      url: "http://localhost:5678"
+    const config = new AptosConfig({
+      fullnode: process.env.APTOS_NODE_URL,
     });
-    console.log("user", user.address().toShortString());
+    const client = new orm.OrmFreePrepayClient(config, {
+      url: "http://localhost:5678",
+    });
+    console.log("user", user.accountAddress.toString());
 
     // create user account
-    let ptxn = await client.createAccount(user.address().toShortString());
+    let ptxn = await client.createAccount(user.accountAddress.toString());
     expect(ptxn.hash).toBeDefined();
     console.log("createAccount", ptxn.hash);
-    let txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
+    let txnr = await client.waitForOrmTxnWithResult(ptxn, {
+      timeoutSecs: 30,
+      checkSuccess: true,
+    });
     await sleep(2000);
 
     // send a transaction without transaction fee.
     {
       const ormtxn = await client.generateOrmTxn(
-        [ user.address().toShortString() ],
+        [user.accountAddress.toString()],
         {
           function: `0x1::aptos_account::transfer`,
-          type_arguments: [],
-          arguments: [user.address().toShortString(), 0],
+          typeArguments: [],
+          functionArguments: [user.accountAddress.toString(), 0],
         }
       );
       expect(ormtxn.type).toBeDefined();
@@ -66,34 +76,40 @@ describe("OrmFreePrepayClient", () => {
       ptxn = await client.signAndsubmitOrmTxn([user], ormtxn);
       expect(ptxn.hash).toBeDefined();
       console.log("generateOrmTxn", ptxn.hash);
-      txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
+      txnr = await client.waitForOrmTxnWithResult(ptxn, {
+        timeoutSecs: 30,
+        checkSuccess: true,
+      });
     }
 
     // publish package without transaction fee.
     // create a FreeFeeObject object.
     {
-      const package_address = orm.getPackageAddress(user.address(), "fee_free");
+      const package_address = orm.getPackageAddress(
+        user.accountAddress,
+        "fee_free"
+      );
       orm.generatePackage({
         package_name: "fee_free",
-        package_creator: user.address(),
+        package_creator: user.accountAddress,
         package_move_path,
         ormobjs: [FreeFeeObject],
         local_apto_orm_package: path.join(__dirname, "../../move/apto_orm"),
       });
       orm.compilePackage({ package_move_path });
 
-      const ormtxns = await orm.publishPackageTxns(
-        client,
-        user,
-        {
-          package_name: "fee_free",
-          package_creator: user.address(),
-          package_move_path,
-        });
+      const ormtxns = await orm.publishPackageTxns(client, user, {
+        package_name: "fee_free",
+        package_creator: user.accountAddress,
+        package_move_path,
+      });
       for (const ormtxn of ormtxns) {
         const ptxn = await client.submitOrmTxn(ormtxn);
         console.log("submitOrmTxn", ptxn.hash);
-        txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
+        txnr = await client.waitForOrmTxnWithResult(ptxn, {
+          timeoutSecs: 30,
+          checkSuccess: true,
+        });
       }
 
       const ffobj = new FreeFeeObject({
@@ -105,7 +121,10 @@ describe("OrmFreePrepayClient", () => {
       const ptxn = await client.submitOrmTxn(ormtxn);
       expect(ptxn.hash).toBeDefined();
       console.log("submitOrmTxn", ptxn.hash);
-      txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
+      txnr = await client.waitForOrmTxnWithResult(ptxn, {
+        timeoutSecs: 30,
+        checkSuccess: true,
+      });
       expect((txnr as any)?.success).toBeTruthy();
     }
   });

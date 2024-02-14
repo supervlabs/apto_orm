@@ -7,6 +7,8 @@ import {
   AccountAddressInput,
   Hex,
   HexInput,
+  InputEntryFunctionData,
+  InputMultiSigData,
   InputGenerateTransactionPayloadData,
   InputGenerateTransactionOptions,
   PendingTransactionResponse,
@@ -180,7 +182,10 @@ export type Uint256 = bigint;
 export type AnyNumber = bigint | number;
 export type Bytes = Uint8Array;
 
-export type OrmFunctionPayload = InputGenerateTransactionPayloadData;
+// export type OrmFunctionPayload = InputGenerateTransactionPayloadData;
+// InputEntryFunctionData | InputMultiSigData
+// InputScriptData - not supported
+export type OrmFunctionPayload = InputEntryFunctionData | InputMultiSigData;
 
 // [FIXME] - payer => boolean으로 변경 - aptos-labs/ts-sdk 구조로 변경 필요
 export type OrmTxnOptions = InputGenerateTransactionOptions & { payer?: Account | boolean };

@@ -33,7 +33,6 @@ import {
 } from './utilities';
 import {
   OrmTxn,
-  // OrmTxnSerialized,
   OrmTxnOptions,
   PendingTransaction,
   OrmFunctionPayload,
@@ -50,7 +49,7 @@ export class OrmClient extends Aptos {
   private _ORM_ADDRESS: string;
   private _ORM_EVENT_TYPE: string;
   private _ORM_OBJECT_TYPE: string;
-  constructor(url_or_config: string);
+  constructor(network_or_url: string);
   constructor(config: AptosConfig);
   constructor(config: AptosConfig | string | undefined) {
     let _config: AptosConfig;
@@ -59,14 +58,17 @@ export class OrmClient extends Aptos {
     } else if (config instanceof AptosConfig) {
       _config = config;
     } else if (typeof config === 'string') {
-      if (config.includes('testnet')) {
+      const lowcase = config.toLowerCase();
+      if (lowcase === 'testnet') {
         _config = new AptosConfig({ network: Network.TESTNET });
-      } else if (config.includes('mainnet')) {
+      } else if (lowcase === 'mainnet') {
         _config = new AptosConfig({ network: Network.MAINNET });
-      } else if (config.includes('devnet')) {
+      } else if (lowcase === 'devnet') {
         _config = new AptosConfig({ network: Network.DEVNET });
-      } else if (config.includes('http')) {
-        _config = new AptosConfig({ network: Network.LOCAL });
+      } else if (lowcase === 'randomnet') {
+        _config = new AptosConfig({ network: Network.RANDOMNET });
+      } else {
+        _config = new AptosConfig({ fullnode: config });
       }
     }
     if (_config === undefined) {

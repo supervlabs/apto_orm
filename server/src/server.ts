@@ -10,13 +10,15 @@ import {
   OrmTxnOptions,
   getOrmAddress,
   OrmTxn,
-  // serializeOrmTxn,
-  // OrmTxnSerialized,
-  // deserializeOrmTxn,
+  serializeOrmTxn,
+  deserializeOrmTxn,
+  SerializedOrmTxn,
   FeeFreeOrmTxnOptions,
   Account,
-  // deserializeArgument,
+  serializeArgument,
+  deserializeArgument,
 } from "apto_orm";
+import { AptosApiError, Ed25519PrivateKey } from "@aptos-labs/ts-sdk";
 
 if (!process.env.APTOS_NODE_URL) {
   throw new Error("APTOS_NODE_URL not specified");
@@ -35,23 +37,31 @@ app.disable("etag");
 const client = new OrmClient(process.env.APTOS_NODE_URL);
 let payer: Account;
 if (process.env.PAYER_PRIVATE_KEY) {
-  payer = AptosAccount.fromAptosAccountObject({
-    privateKeyHex: process.env.PAYER_PRIVATE_KEY,
-  });
+  const privateKey = new Ed25519PrivateKey(process.env.PAYER_PRIVATE_KEY);
+  payer = Account.fromPrivateKey({ privateKey });
+} else {
+  payer = loadAccountFromPrivatekeyFile(process.env.PAYER || "./.key/payer");
 }
-payer = loadAccountFromPrivatekeyFile(process.env.PAYER || "./.key/payer");
 
+console.log("Payer address:", payer.accountAddress.toString());
 let payer_sequence_number = -1n;
+// (async () => {
+//   if (payer_sequence_number < 0n) {
+//     payer_sequence_number = await client.getAccountSequenceNumber(
+//       payer.accountAddress
+//     );
+//   }
+// })();
 
 app.post("/fee_free/create_account/:address", async (req, res) => {
-  if (payer_sequence_number < 0n) {
-    payer_sequence_number = await client.getAccountSequenceNumber(
-      payer.address()
-    );
-  }
   try {
+    if (payer_sequence_number < 0n) {
+      payer_sequence_number = await client.getAccountSequenceNumber(
+        payer.accountAddress
+      );
+    }
     const otxn = await client.transferCoinsTxn(payer, req.params.address, 0n, {
-      sequence_number: String(payer_sequence_number++),
+      accountSequenceNumber: payer_sequence_number++,
     });
     const ptxn = await client.signAndsubmitOrmTxn([payer], otxn);
     return res.status(200).json(ptxn);
@@ -60,6 +70,7 @@ app.post("/fee_free/create_account/:address", async (req, res) => {
     if (err instanceof AptosApiError) {
       return res.status(err.status).json({
         error_message: JSON.parse(err.message),
+        data: err.data,
       });
     }
     return res.status(400).json({
@@ -75,7 +86,7 @@ app.post(
       unknown,
       unknown,
       {
-        signers: MaybeHexString[];
+        signers: string[];
         payload: OrmFunctionPayload;
         options: FeeFreeOrmTxnOptions;
       }
@@ -92,25 +103,24 @@ app.post(
     if (!payload?.function) {
       return res.status(400).json({ error_message: "function not specified" });
     }
-    // check validation and authorization
-    // if (!payload.function.startsWith(getOrmAddress())) {
-    //   res.status(400).json({ error_message: "invalid function" });
-    // }
     try {
-      payload.arguments = payload.arguments.map((arg) => {
+      payload.functionArguments = payload.functionArguments.map((arg) => {
         return deserializeArgument(arg);
       });
-      const otxn = await client.generateOrmTxn(signers, payload, {
-        sequence_number: options?.sequence_number,
-        expiration_timestamp_secs: options?.expiration_timestamp_secs,
+      const ormtxn = await client.generateOrmTxn(signers, payload, {
+        accountSequenceNumber: options?.accountSequenceNumber,
+        expireTimestamp: options?.expireTimestamp,
         payer,
       });
-      return res.status(200).json(serializeOrmTxn(otxn));
+      return res.status(200).json({
+        ormtxn: serializeOrmTxn(ormtxn),
+      });
     } catch (err) {
       console.error(err);
       if (err instanceof AptosApiError) {
         return res.status(err.status).json({
           error_message: JSON.parse(err.message),
+          data: err.data,
         });
       }
       return res.status(400).json({
@@ -121,30 +131,27 @@ app.post(
 );
 
 app.get("/fee_free*", async (req, res) => {
-  return res.status(200).json({ payer: payer.address().toShortString() });
+  return res.status(200).json({ payer: payer.accountAddress.toString() });
 });
 
 app.post(
   "/fee_free/sign_and_submit_txn",
-  async (req: Request<unknown, unknown, OrmTxnSerialized>, res) => {
-    const orm_txn_serialized = req.body as OrmTxnSerialized;
-    if (
-      !orm_txn_serialized ||
-      !orm_txn_serialized.txn ||
-      !orm_txn_serialized.auths
-    ) {
-      return res
-        .status(400)
-        .json({ error_message: "invalid transaction format" });
-    }
+  async (
+    req: Request<unknown, unknown, { ormtxn: SerializedOrmTxn }>,
+    res
+  ) => {
     try {
-      const orm_txn = deserializeOrmTxn(orm_txn_serialized);
-      const ptxn = await client.signAndsubmitOrmTxn([], orm_txn, { payer });
+      if (!req.body?.ormtxn) {
+        return res.status(400).json({ error_message: "ormtxn not specified" });
+      }
+      const ormtxn = deserializeOrmTxn(req.body?.ormtxn);
+      const ptxn = await client.signAndsubmitOrmTxn([], ormtxn, { payer });
       return res.status(200).json(ptxn);
     } catch (err) {
       if (err instanceof AptosApiError) {
         return res.status(err.status).json({
           error_message: JSON.parse(err.message),
+          data: err.data,
         });
       }
       return res.status(400).json({

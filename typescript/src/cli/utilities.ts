@@ -26,13 +26,13 @@ export function loadOrmClient(program: Command) {
   });
   if (prepay_url)
     return new OrmFreePrepayClient(config, {
-      feeFree: prepay_url,
-      feeFreeHeader: fee_free_headers,
+      url: prepay_url,
+      header: fee_free_headers,
     });
   else if (postpay_url)
     return new OrmFreePostpayClient(config, {
-      feeFree: postpay_url,
-      feeFreeHeader: fee_free_headers,
+      url: postpay_url,
+      header: fee_free_headers,
     });
   return new OrmClient(config);
 }

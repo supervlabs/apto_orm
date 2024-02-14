@@ -29,15 +29,17 @@ import { toAddress } from './utilities';
 import { OrmClient } from './client';
 
 export type FeeFreeSettings = {
-  readonly feeFree?: string;
-  readonly feeFreeHeader?: Record<string, string | number | boolean>;
+  readonly url?: string;
+  readonly header?: Record<string, string | number | boolean>;
 };
 
 const axios_header = {
   'Content-Type': 'application/json',
 };
 
-export function serializeOrmTxn(ormtxn: OrmTxn) {
+export type SerializedOrmTxn = string;
+
+export function serializeOrmTxn(ormtxn: OrmTxn): SerializedOrmTxn {
   if (!ormtxn) throw new Error('ormtxn is undefined');
   const s = new Serializer();
   s.serializeStr(ormtxn.type);
@@ -62,12 +64,13 @@ export function serializeOrmTxn(ormtxn: OrmTxn) {
   if (ormtxn.payer_auth) {
     s.serialize(ormtxn.payer_auth);
   }
-  return s.toUint8Array();
+  return Buffer.from(s.toUint8Array()).toString('hex');
 }
 
-export function deserializeOrmTxn(ormtxnSerialized: Uint8Array) {
+export function deserializeOrmTxn(ormtxnSerialized: SerializedOrmTxn) {
   if (!ormtxnSerialized) throw new Error('ormtxn is undefined');
-  let d = new Deserializer(ormtxnSerialized);
+  const s = Buffer.from(ormtxnSerialized, 'hex');
+  let d = new Deserializer(s);
   const type = d.deserializeStr();
   if (type !== 'simple' && type !== 'multiAgent') {
     throw new Error('invalid ormtxn type');
@@ -126,11 +129,11 @@ export class OrmFreePrepayClient extends OrmClient {
 
   constructor(config: AptosConfig, settings: FeeFreeSettings) {
     super(config);
-    if (settings.feeFree) {
-      this.feeFree = settings.feeFree;
+    if (settings.url) {
+      this.feeFree = settings.url;
     }
-    if (settings.feeFreeHeader) {
-      this.feeFreeHeader = settings.feeFreeHeader;
+    if (settings.header) {
+      this.feeFreeHeader = settings.header;
     }
   }
 
@@ -138,7 +141,7 @@ export class OrmFreePrepayClient extends OrmClient {
     if (!this.feeFree) {
       throw new Error('free fee url is undefined');
     }
-    const url = this.feeFree + `/feeFree/create_account/${toAddress(address).toString()}`;
+    const url = this.feeFree + `/fee_free/create_account/${toAddress(address).toString()}`;
     const resp = await axios.post(url, null);
     return resp.data as PendingTransaction;
   }
@@ -152,11 +155,14 @@ export class OrmFreePrepayClient extends OrmClient {
       throw new Error('free fee url is undefined');
     }
     try {
-      const url = this.feeFree + '/feeFree/generate_txn';
+      const url = this.feeFree + '/fee_free/generate_txn';
       const _options: FeeFreeOrmTxnOptions = {
         accountSequenceNumber: options.accountSequenceNumber,
         expireTimestamp: options.expireTimestamp,
       };
+      const functionArguments = payload.functionArguments.map((arg) => {
+        return;
+      });
       const response = await axios.post(
         url,
         {
@@ -169,7 +175,7 @@ export class OrmFreePrepayClient extends OrmClient {
         { headers: axios_header }
       );
       // return response.data as OrmTxn;
-      const body = Uint8Array.from(Buffer.from(response.data, 'hex'));
+      const body = response.data;
       const txn = deserializeOrmTxn(body);
       return this.signOrmTxn(signers, txn);
     } catch (err) {
@@ -189,11 +195,11 @@ export class OrmFreePostpayClient extends OrmClient {
 
   constructor(config: AptosConfig, settings: FeeFreeSettings) {
     super(config);
-    if (settings.feeFree) {
-      this.feeFree = settings.feeFree;
+    if (settings.url) {
+      this.feeFree = settings.url;
     }
-    if (settings.feeFreeHeader) {
-      this.feeFreeHeader = settings.feeFreeHeader;
+    if (settings.header) {
+      this.feeFreeHeader = settings.header;
     }
   }
 
@@ -201,7 +207,7 @@ export class OrmFreePostpayClient extends OrmClient {
     if (!this.feeFree) {
       throw new Error('free fee url is undefined');
     }
-    const url = this.feeFree + `/feeFree/create_account/${toAddress(address).toString()}`;
+    const url = this.feeFree + `/fee_free/create_account/${toAddress(address).toString()}`;
     const resp = await axios.post(url, null);
     return resp.data as PendingTransaction;
   }
@@ -210,7 +216,7 @@ export class OrmFreePostpayClient extends OrmClient {
     if (!this.feeFree) {
       throw new Error('free fee url is undefined');
     }
-    const url = this.feeFree + '/feeFree/sign_and_submit_txn';
+    const url = this.feeFree + '/fee_free/sign_and_submit_txn';
     const serialized = serializeOrmTxn(ormtxn);
     const body = Buffer.from(serialized).toString('hex');
     try {
@@ -229,7 +235,7 @@ export class OrmFreePostpayClient extends OrmClient {
     if (!this.feeFree) {
       throw new Error('free fee url is undefined');
     }
-    const url = this.feeFree + '/feeFree';
+    const url = this.feeFree + '/fee_free';
     try {
       const response = await axios.get(url);
       return response.data as { payer: string };
