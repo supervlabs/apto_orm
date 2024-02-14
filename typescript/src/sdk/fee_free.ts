@@ -1,4 +1,6 @@
 import {
+  Serializer,
+  Deserializer,
   Aptos,
   AptosConfig,
   ClientConfig,
@@ -18,9 +20,10 @@ import {
   MultiAgentTransaction,
   AccountAuthenticator,
   EntryFunctionArgumentTypes,
+  RawTransaction,
 } from '@aptos-labs/ts-sdk';
 import axios, { isAxiosError } from 'axios';
-import { OrmTxn, PendingTransaction, OrmFunctionPayload, OrmTxnOptions, FeeFreeOrmTxnOptions } from './types';
+import { OrmTxn, PendingTransaction, OrmFunctionPayload, FeeFreeOrmTxnOptions } from './types';
 import { toAddress } from './utilities';
 // import { serializeArgument, hexEncodedBytesToUint8Array, toAddress } from './utilities';
 import { OrmClient } from './client';
@@ -34,73 +37,86 @@ const axios_header = {
   'Content-Type': 'application/json',
 };
 
-// export function serializeOrmTxn(ormtxn: OrmTxn) {
-//   if (!ormtxn) throw new Error('ormtxn is undefined');
-//   const txn_serializer = new BCS.Serializer();
-//   ormtxn.txn.serialize(txn_serializer);
-//   const payer_auth_serializer = new BCS.Serializer();
-//   if (ormtxn.payer_auth) ormtxn.payer_auth.serialize(payer_auth_serializer);
-//   const serialized: OrmTxnSerialized = {
-//     type: ormtxn.type,
-//     txn: HexString.fromUint8Array(txn_serializer.getBytes()).toString(),
-//     auths: ormtxn.auths.map((auth) => {
-//       if (!auth) return null;
-//       const s = new BCS.Serializer();
-//       auth.serialize(s);
-//       return HexString.fromUint8Array(s.getBytes()).toString();
-//     }),
-//     payer_auth: ormtxn?.payer_auth ? HexString.fromUint8Array(payer_auth_serializer.getBytes()).toString() : null,
-//   };
-//   return serialized;
-// }
+export function serializeOrmTxn(ormtxn: OrmTxn) {
+  if (!ormtxn) throw new Error('ormtxn is undefined');
+  const s = new Serializer();
+  s.serializeStr(ormtxn.type);
+  s.serialize(ormtxn.txn.rawTransaction);
+  let length = ormtxn.txn.secondarySignerAddresses?.length || 0;
+  s.serializeU64(length);
+  for (const addr of ormtxn.txn.secondarySignerAddresses || []) {
+    s.serialize(addr);
+  }
+  s.serializeBool(!!ormtxn.txn.feePayerAddress);
+  if (ormtxn.txn?.feePayerAddress) {
+    s.serialize(ormtxn.txn.feePayerAddress);
+  }
 
-// export function deserializeOrmTxn(ormtxn: OrmTxnSerialized) {
-//   if (!ormtxn) throw new Error('ormtxn is undefined');
-//   const payer_auth = (() => {
-//     if (!ormtxn.payer_auth) return null;
-//     const u8a = hexEncodedBytesToUint8Array(ormtxn.payer_auth);
-//     if (u8a.length === 0) return null;
-//     const payer_auth_deserializer = new BCS.Deserializer(u8a);
-//     return TxnBuilderTypes.AccountAuthenticatorEd25519.deserialize(payer_auth_deserializer);
-//   })();
-//   const auths = (() => {
-//     return ormtxn.auths.map((auth) => {
-//       if (!auth) return null;
-//       const u8a = hexEncodedBytesToUint8Array(auth);
-//       if (u8a.length === 0) return null;
-//       const auth_deserializer = new BCS.Deserializer(u8a);
-//       return TxnBuilderTypes.AccountAuthenticatorEd25519.deserialize(auth_deserializer);
-//     });
-//   })();
-//   const u8a = hexEncodedBytesToUint8Array(ormtxn.txn);
-//   if (u8a.length === 0) throw new Error('txn is empty');
-//   const deserializer = new BCS.Deserializer(u8a);
-//   switch (ormtxn.type) {
-//     case 'fee-payer':
-//       return {
-//         type: ormtxn.type,
-//         txn: TxnBuilderTypes.FeePayerRawTransaction.deserialize(deserializer),
-//         auths,
-//         payer_auth,
-//       } as OrmTxn;
-//     case 'multi-agent':
-//       return {
-//         type: ormtxn.type,
-//         txn: TxnBuilderTypes.MultiAgentRawTransaction.deserialize(deserializer),
-//         auths,
-//         payer_auth,
-//       } as OrmTxn;
-//     case 'raw':
-//       return {
-//         type: ormtxn.type,
-//         txn: TxnBuilderTypes.RawTransaction.deserialize(deserializer),
-//         auths,
-//         payer_auth,
-//       } as OrmTxn;
-//     default:
-//       throw new Error(`unknown ormtxn type ${ormtxn.type}`);
-//   }
-// }
+  length = ormtxn.auths?.length || 0;
+  s.serializeU64(length);
+  for (const auth of ormtxn.auths || []) {
+    s.serializeBool(!!auth);
+    if (auth) s.serialize(auth);
+  }
+  s.serializeBool(!!ormtxn.payer_auth);
+  if (ormtxn.payer_auth) {
+    s.serialize(ormtxn.payer_auth);
+  }
+  return s.toUint8Array();
+}
+
+export function deserializeOrmTxn(ormtxnSerialized: Uint8Array) {
+  if (!ormtxnSerialized) throw new Error('ormtxn is undefined');
+  let d = new Deserializer(ormtxnSerialized);
+  const type = d.deserializeStr();
+  if (type !== 'simple' && type !== 'multiAgent') {
+    throw new Error('invalid ormtxn type');
+  }
+  const txn = RawTransaction.deserialize(d);
+  let length = d.deserializeU64();
+  let secondarySignerAddresses: AccountAddress[] = [];
+  for (let i = 0; i < length; i++) {
+    secondarySignerAddresses.push(AccountAddress.deserialize(d));
+  }
+  let feePayerAddress: AccountAddress;
+  if (d.deserializeBool()) {
+    feePayerAddress = AccountAddress.deserialize(d);
+  }
+  length = d.deserializeU64();
+  let auths: (AccountAuthenticator | null)[] = [];
+  for (let i = 0; i < length; i++) {
+    if (d.deserializeBool()) {
+      auths.push(AccountAuthenticator.deserialize(d));
+    } else {
+      auths.push(null);
+    }
+  }
+  let payer_auth: AccountAuthenticator;
+  if (d.deserializeBool()) {
+    payer_auth = AccountAuthenticator.deserialize(d);
+  }
+  if (type === 'simple') {
+    return {
+      type,
+      txn: {
+        rawTransaction: txn,
+        feePayerAddress,
+      },
+      auths,
+      payer_auth,
+    } as OrmTxn;
+  }
+  return {
+    type,
+    txn: {
+      rawTransaction: txn,
+      secondarySignerAddresses,
+      feePayerAddress,
+    },
+    auths,
+    payer_auth,
+  } as OrmTxn;
+}
 
 /** OrmFreePrepayClient is a client that can generate transaction and return the signed transaction
  * before user signs it. */
@@ -108,7 +124,7 @@ export class OrmFreePrepayClient extends OrmClient {
   private feeFree?: string;
   private feeFreeHeader?: Record<string, string | number | boolean>;
 
-  constructor(config: AptosConfig, settings?: FeeFreeSettings) {
+  constructor(config: AptosConfig, settings: FeeFreeSettings) {
     super(config);
     if (settings.feeFree) {
       this.feeFree = settings.feeFree;
@@ -152,9 +168,10 @@ export class OrmFreePrepayClient extends OrmClient {
         },
         { headers: axios_header }
       );
-      return response.data as OrmTxn;
-      //   const txn = deserializeOrmTxn(response.data as OrmTxnSerialized);
-      //   return this.signOrmTxn(signers, txn);
+      // return response.data as OrmTxn;
+      const body = Uint8Array.from(Buffer.from(response.data, 'hex'));
+      const txn = deserializeOrmTxn(body);
+      return this.signOrmTxn(signers, txn);
     } catch (err) {
       if (isAxiosError(err)) {
         console.error(err.response?.data);
@@ -170,7 +187,7 @@ export class OrmFreePostpayClient extends OrmClient {
   private feeFree?: string;
   private feeFreeHeader?: Record<string, string | number | boolean>;
 
-  constructor(config: AptosConfig, settings?: FeeFreeSettings) {
+  constructor(config: AptosConfig, settings: FeeFreeSettings) {
     super(config);
     if (settings.feeFree) {
       this.feeFree = settings.feeFree;
@@ -194,9 +211,10 @@ export class OrmFreePostpayClient extends OrmClient {
       throw new Error('free fee url is undefined');
     }
     const url = this.feeFree + '/feeFree/sign_and_submit_txn';
-    // const serialized = serializeOrmTxn(ormtxn);
+    const serialized = serializeOrmTxn(ormtxn);
+    const body = Buffer.from(serialized).toString('hex');
     try {
-      const response = await axios.post(url, ormtxn, { headers: axios_header });
+      const response = await axios.post(url, body, { headers: axios_header });
       return response.data as PendingTransaction;
     } catch (err) {
       if (isAxiosError(err)) {

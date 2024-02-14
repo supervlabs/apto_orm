@@ -10,13 +10,13 @@ import {
   OrmTxnOptions,
   getOrmAddress,
   OrmTxn,
-  serializeOrmTxn,
-  OrmTxnSerialized,
-  deserializeOrmTxn,
+  // serializeOrmTxn,
+  // OrmTxnSerialized,
+  // deserializeOrmTxn,
   FeeFreeOrmTxnOptions,
-  deserializeArgument,
+  Account,
+  // deserializeArgument,
 } from "apto_orm";
-import { AptosAccount, AptosApiError, BCS, MaybeHexString } from "aptos";
 
 if (!process.env.APTOS_NODE_URL) {
   throw new Error("APTOS_NODE_URL not specified");
@@ -33,7 +33,7 @@ app.enable("trust proxy"); // to get remote ip properly
 app.disable("etag");
 
 const client = new OrmClient(process.env.APTOS_NODE_URL);
-let payer: AptosAccount;
+let payer: Account;
 if (process.env.PAYER_PRIVATE_KEY) {
   payer = AptosAccount.fromAptosAccountObject({
     privateKeyHex: process.env.PAYER_PRIVATE_KEY,

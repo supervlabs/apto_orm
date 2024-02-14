@@ -195,14 +195,6 @@ export type OrmTxn = {
   payer_auth?: AccountAuthenticator | null;
 };
 
-export type HexEncodedBytes = string;
-// export type OrmTxnSerialized = {
-//   type: 'raw' | 'multi-agent' | 'fee-payer';
-//   txn: HexEncodedBytes;
-//   auths: (HexEncodedBytes | null)[];
-//   payer_auth?: HexEncodedBytes | null;
-// };
-
 export type OrmPackageConfig = {
   /** The creator address of the object and package */
   package_creator: Account | AccountAddressInput;

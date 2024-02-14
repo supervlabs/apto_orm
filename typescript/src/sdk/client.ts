@@ -454,20 +454,21 @@ export class OrmClient extends Aptos {
   }
 
   async transferForciblyTxn<OrmObject extends OrmObjectLiteral>(
-    user: AptosAccount | MaybeHexString,
+    user: Account | AccountAddressInput,
     obj: OrmObjectTarget<OrmObject>,
-    to: MaybeHexString,
-    options?: OrmTxnOptions) {
-      const { address, metadata } = loadOrmClassMetadata(obj, true);
-      return await this.generateOrmTxn(
-        [user],
-        {
-          function: `${this.ormAddress}::orm_object::transfer_forcibly`,
-          type_arguments: [`0x1::object::ObjectCore`],
-          arguments: [address, to],
-        },
-        options
-      );
+    to: AccountAddressInput,
+    options?: OrmTxnOptions
+  ) {
+    const { address, metadata } = loadOrmClassMetadata(obj, true);
+    return await this.generateOrmTxn(
+      [user],
+      {
+        function: `${this.ormAddress}::orm_object::transfer_forcibly`,
+        typeArguments: [`0x1::object::ObjectCore`],
+        functionArguments: [address, to],
+      },
+      options
+    );
   }
 
   async transferCoinsTxn(
