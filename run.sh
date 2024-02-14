@@ -28,7 +28,7 @@ create_accounts() {
    create_account default $NETWORK
    create_account user $NETWORK
    create_account payer $NETWORK
-   generate_env
+   generate_env $1
 }
 
 rm_accounts() {
@@ -39,6 +39,7 @@ generate_env() {
    rm -f .env
    {
       echo "set -a"
+      echo "APTOS_NETWORK=$1"
       echo "APTOS_NODE_URL=$(yq '.profiles.default.rest_url' $config_yaml)"
       echo "APTOS_FAUCET_URL=$(yq '.profiles.default.faucet_url' $config_yaml)"
       echo "APTO_ORM_ADDR=$(yq '.profiles.default.account' $config_yaml)"

@@ -34,7 +34,7 @@ app.use(express.urlencoded({ extended: false, limit: "1mb" }));
 app.enable("trust proxy"); // to get remote ip properly
 app.disable("etag");
 
-const client = new OrmClient(process.env.APTOS_NODE_URL);
+const client = new OrmClient(process.env.APTOS_NETWORK || "local");
 let payer: Account;
 if (process.env.PAYER_PRIVATE_KEY) {
   const privateKey = new Ed25519PrivateKey(process.env.PAYER_PRIVATE_KEY);
@@ -136,10 +136,7 @@ app.get("/fee_free*", async (req, res) => {
 
 app.post(
   "/fee_free/sign_and_submit_txn",
-  async (
-    req: Request<unknown, unknown, { ormtxn: SerializedOrmTxn }>,
-    res
-  ) => {
+  async (req: Request<unknown, unknown, { ormtxn: SerializedOrmTxn }>, res) => {
     try {
       if (!req.body?.ormtxn) {
         return res.status(400).json({ error_message: "ormtxn not specified" });
