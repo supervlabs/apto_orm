@@ -1,31 +1,17 @@
 import {
   Serializer,
   Deserializer,
-  Aptos,
   AptosConfig,
-  ClientConfig,
-  Network,
-  MoveType,
-  MoveValue,
   AccountAddress,
   AccountAddressInput,
-  Hex,
-  HexInput,
   Account,
-  InputGenerateTransactionPayloadData,
-  InputGenerateTransactionOptions,
-  PendingTransactionResponse,
-  AnyRawTransaction,
-  SimpleTransaction,
-  MultiAgentTransaction,
   AccountAuthenticator,
-  EntryFunctionArgumentTypes,
   RawTransaction,
+  AptosSettings,
 } from '@aptos-labs/ts-sdk';
 import axios, { isAxiosError } from 'axios';
 import { OrmTxn, PendingTransaction, OrmFunctionPayload, FeeFreeOrmTxnOptions } from './types';
-import { toAddress } from './utilities';
-// import { serializeArgument, hexEncodedBytesToUint8Array, toAddress } from './utilities';
+import { serializeArgument, toAddress } from './utilities';
 import { OrmClient } from './client';
 
 export type FeeFreeSettings = {
@@ -127,8 +113,8 @@ export class OrmFreePrepayClient extends OrmClient {
   private feeFree?: string;
   private feeFreeHeader?: Record<string, string | number | boolean>;
 
-  constructor(config: AptosConfig, settings: FeeFreeSettings) {
-    super(config);
+  constructor(config: AptosConfig | AptosSettings | string, settings: FeeFreeSettings) {
+    super(config as any);
     if (settings.url) {
       this.feeFree = settings.url;
     }
@@ -156,28 +142,31 @@ export class OrmFreePrepayClient extends OrmClient {
     }
     try {
       const url = this.feeFree + '/fee_free/generate_txn';
-      const _options: FeeFreeOrmTxnOptions = {
-        accountSequenceNumber: options.accountSequenceNumber,
-        expireTimestamp: options.expireTimestamp,
-      };
-      const functionArguments = payload.functionArguments.map((arg) => {
-        return;
-      });
       const response = await axios.post(
         url,
         {
           signers: signers.map((s) => {
             return toAddress(s).toString();
           }),
-          payload,
-          options: _options,
+          payload: {
+            function: payload.function,
+            typeArguments: payload.typeArguments,
+            functionArguments: payload.functionArguments.map((arg) => {
+              return serializeArgument(arg);
+            }),
+          },
+          options,
         },
         { headers: axios_header }
       );
       // return response.data as OrmTxn;
       const body = response.data;
-      const txn = deserializeOrmTxn(body);
-      return this.signOrmTxn(signers, txn);
+      if (!body?.ormtxn) {
+        throw new Error('no ormtxn');
+      }
+      const ormtxn = deserializeOrmTxn(body.ormtxn);
+      console.log('prepay client ... signOrmTxn', ormtxn);
+      return this.signOrmTxn(signers, ormtxn);
     } catch (err) {
       if (isAxiosError(err)) {
         console.error(err.response?.data);
@@ -193,8 +182,8 @@ export class OrmFreePostpayClient extends OrmClient {
   private feeFree?: string;
   private feeFreeHeader?: Record<string, string | number | boolean>;
 
-  constructor(config: AptosConfig, settings: FeeFreeSettings) {
-    super(config);
+  constructor(config: AptosConfig | AptosSettings | string, settings: FeeFreeSettings) {
+    super(config as any);
     if (settings.url) {
       this.feeFree = settings.url;
     }
@@ -217,10 +206,9 @@ export class OrmFreePostpayClient extends OrmClient {
       throw new Error('free fee url is undefined');
     }
     const url = this.feeFree + '/fee_free/sign_and_submit_txn';
-    const serialized = serializeOrmTxn(ormtxn);
-    const body = Buffer.from(serialized).toString('hex');
     try {
-      const response = await axios.post(url, body, { headers: axios_header });
+      const stxn = serializeOrmTxn(ormtxn);
+      const response = await axios.post(url, { ormtxn: stxn }, { headers: axios_header });
       return response.data as PendingTransaction;
     } catch (err) {
       if (isAxiosError(err)) {

@@ -42,18 +42,13 @@ export class FreeFeeObject {
 
 describe("FreeFeeObject", () => {
   test("generate fee_free_object object resource", async () => {
-    const config = new AptosConfig({
-      fullnode: process.env.APTOS_NODE_URL + '/v1',
-    });
-    const client = new orm.OrmFreePostpayClient(config, {
+    const client = new orm.OrmFreePostpayClient("local", {
       url: "http://localhost:5678",
     });
-    console.log("user", user.accountAddress);
-
+    console.log("user", user.accountAddress.toString());
     // create user account
     let ptxn = await client.createAccount(user.accountAddress);
     expect(ptxn.hash).toBeDefined();
-    console.log("free.createAccount", ptxn.hash);
     let txnr = await client.waitForOrmTxnWithResult(ptxn, {
       timeoutSecs: 30,
       checkSuccess: true,
@@ -75,7 +70,7 @@ describe("FreeFeeObject", () => {
       );
       expect(ormtxn.type).toBeDefined();
       expect(ormtxn.txn).toBeDefined();
-      expect(ormtxn.payer_auth).toBeDefined();
+      expect(ormtxn.payer_auth).toBeUndefined();
       ptxn = await client.signAndsubmitOrmTxn([user], ormtxn);
       expect(ptxn.hash).toBeDefined();
       console.log("free.generateOrmTxn", ptxn.hash);

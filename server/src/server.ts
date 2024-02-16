@@ -8,14 +8,11 @@ import {
   loadAccountFromPrivatekeyFile,
   OrmFunctionPayload,
   OrmTxnOptions,
-  getOrmAddress,
-  OrmTxn,
   serializeOrmTxn,
   deserializeOrmTxn,
   SerializedOrmTxn,
   FeeFreeOrmTxnOptions,
   Account,
-  serializeArgument,
   deserializeArgument,
 } from "apto_orm";
 import { AptosApiError, Ed25519PrivateKey } from "@aptos-labs/ts-sdk";
@@ -107,11 +104,16 @@ app.post(
       payload.functionArguments = payload.functionArguments.map((arg) => {
         return deserializeArgument(arg);
       });
-      const ormtxn = await client.generateOrmTxn(signers, payload, {
-        accountSequenceNumber: options?.accountSequenceNumber,
-        expireTimestamp: options?.expireTimestamp,
+      let opts: OrmTxnOptions = {
         payer,
-      });
+      };
+      if (options?.accountSequenceNumber) {
+        opts.accountSequenceNumber = options.accountSequenceNumber;
+      }
+      if (options?.expireTimestamp) {
+        opts.expireTimestamp = options.expireTimestamp;
+      }
+      const ormtxn = await client.generateOrmTxn(signers, payload, opts);
       return res.status(200).json({
         ormtxn: serializeOrmTxn(ormtxn),
       });

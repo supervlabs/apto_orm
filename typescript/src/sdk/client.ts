@@ -1,32 +1,17 @@
 import {
   Aptos,
   AptosConfig,
-  ClientConfig,
   Network,
-  MoveType,
-  MoveValue,
-  AccountAddress,
   AccountAddressInput,
-  Hex,
   HexInput,
   Account,
-  InputGenerateTransactionPayloadData,
-  InputGenerateTransactionOptions,
-  PendingTransactionResponse,
   AnyRawTransaction,
-  SimpleTransaction,
-  MultiAgentTransaction,
   AccountAuthenticator,
-  EntryFunctionArgumentTypes,
   AptosSettings,
 } from '@aptos-labs/ts-sdk';
 import {
   toAddress,
   getOrmAddress,
-  loadAddresses,
-  // hexEncodedBytesToUint8Array,
-  areUint8ArraysEqual,
-  getNamedObjectAddress,
   loadOrmClassMetadata,
   setOrmObjectAddress,
   toPrimitiveType,
@@ -53,7 +38,7 @@ export class OrmClient extends Aptos {
   constructor(config: AptosSettings);
   constructor(config: AptosConfig);
   constructor(config: string);
-  constructor(config: AptosConfig | AptosSettings | string | undefined) {
+  constructor(config: AptosConfig | AptosSettings | string) {
     let _config: AptosConfig;
     if (config instanceof AptosConfig) {
       _config = config;
@@ -165,7 +150,7 @@ export class OrmClient extends Aptos {
       if (signers.length <= i) continue;
       const s = signers[i];
       if (s instanceof Account) {
-        auths.push(this.transaction.sign({ signer: s, transaction: ormtxn.txn }));
+        auths[i] = this.transaction.sign({ signer: s, transaction: ormtxn.txn });
       }
     }
     if (options?.payer && options.payer instanceof Account) {

@@ -42,10 +42,7 @@ export class FreeFeeObject {
 
 describe("OrmFreePrepayClient", () => {
   test("generate fee_free_object object resource", async () => {
-    const config = new AptosConfig({
-      fullnode: process.env.APTOS_NODE_URL + '/v1',
-    });
-    const client = new orm.OrmFreePrepayClient(config, {
+    const client = new orm.OrmFreePrepayClient("local", {
       url: "http://localhost:5678",
     });
     console.log("user", user.accountAddress.toString());
