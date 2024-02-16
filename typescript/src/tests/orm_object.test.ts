@@ -84,10 +84,10 @@ describe('AptoORM Object', () => {
     });
     expect(b.title).toBe('2th title');
 
-    const classAddr = orm.getClassAddress(PostObject).toShortString();
+    const classAddr = orm.getClassAddress(PostObject).toString();
     expect(classAddr).toBeDefined();
-    expect(orm.getClassAddress(a).toShortString()).toBe(classAddr);
-    expect(orm.getClassAddress("PostObject").toShortString()).toBe(classAddr);
+    expect(orm.getClassAddress(a).toString()).toBe(classAddr);
+    expect(orm.getClassAddress("PostObject").toString()).toBe(classAddr);
 
     const c: PostObject = new PostObject({
       title: '3th title',

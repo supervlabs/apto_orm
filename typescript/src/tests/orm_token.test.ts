@@ -68,10 +68,10 @@ describe('AptoORM Token', () => {
     membership.uri = 'https://example.com/membership/silver';
     membership.description = 'ORM Silver Membership';
 
-    const classAddr = orm.getClassAddress(Membership).toShortString();
+    const classAddr = orm.getClassAddress(Membership).toString();
     expect(classAddr).toBeDefined();
-    expect(orm.getClassAddress(membership).toShortString()).toBe(classAddr);
-    expect(orm.getClassAddress("Membership").toShortString()).toBe(classAddr);
+    expect(orm.getClassAddress(membership).toString()).toBe(classAddr);
+    expect(orm.getClassAddress("Membership").toString()).toBe(classAddr);
 
     let txn = await client.createTxn(package_creator, membership);
     let ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
