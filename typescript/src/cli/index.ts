@@ -416,7 +416,7 @@ program
   .action(async function () {
     const client = loadOrmClient(program);
     const { key, address, to } = this.opts();
-    let creator_or_owner: AptosAccount;
+    let creator_or_owner: Account;
     if (!key) {
       throw new Error(`key file not specified`);
     }

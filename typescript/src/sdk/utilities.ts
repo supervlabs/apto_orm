@@ -333,7 +333,7 @@ export function getClassAddress<OrmObject extends OrmObjectLiteral>(
   if (!target) {
     throw new Error('target is required');
   }
-  let address: HexString;
+  let address: AccountAddress;
   let metadata: OrmClassMetadata;
   if (typeof target === 'function') {
     const orm_class = target as OrmObjectType<OrmObject>;
