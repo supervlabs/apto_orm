@@ -2,6 +2,7 @@ import {
   Aptos,
   AptosConfig,
   Network,
+  AccountAddress,
   AccountAddressInput,
   HexInput,
   Account,
@@ -447,17 +448,25 @@ export class OrmClient extends Aptos {
 
   async transferForciblyTxn<OrmObject extends OrmObjectLiteral>(
     user: Account | AccountAddressInput,
-    obj: OrmObjectTarget<OrmObject>,
+    obj: OrmObjectTarget<OrmObject> | AccountAddressInput,
     to: AccountAddressInput,
     options?: OrmTxnOptions
   ) {
-    const { address, metadata } = loadOrmClassMetadata(obj, true);
+    let address: AccountAddress;
+    if (obj instanceof AccountAddress) {
+      address = obj;
+    } else if (typeof obj === 'string') {
+      address = AccountAddress.fromString(obj);
+    } else {
+      const { address: _addr } = loadOrmClassMetadata(obj, true);
+      address = _addr;
+    }
     return await this.generateOrmTxn(
       [user],
       {
         function: `${this.ormAddress}::orm_object::transfer_forcibly`,
         typeArguments: [`0x1::object::ObjectCore`],
-        functionArguments: [address, to],
+        functionArguments: [address.toString(), to],
       },
       options
     );
