@@ -1,9 +1,9 @@
 import { OrmClient } from './client';
-import { OrmObjectLiteral, OrmObjectTarget } from './types';
+import { ObjectLiteral, OrmObjectTarget } from './types';
 /**
  * Repository is supposed to work with your entity objects. Find entities, insert, update, delete, etc.
  */
-export class Repository<OrmObject extends OrmObjectLiteral> {
+export class Repository<OrmObject extends ObjectLiteral> {
   // -------------------------------------------------------------------------
   // Public Properties
   // -------------------------------------------------------------------------

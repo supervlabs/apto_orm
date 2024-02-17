@@ -6,7 +6,7 @@ import {
   OrmFieldData,
   OrmFieldConfig,
   OrmTokenConfig,
-  OrmObjectLiteral,
+  ObjectLiteral,
   OrmFieldCommonMoveType,
   OrmFieldTypeString,
 } from './types';
@@ -14,7 +14,7 @@ import { camelToSnake, loadAddresses, toAddress } from './utilities';
 
 const ormObjectKey = Symbol('orm:object');
 const ormObjectFieldsKey = Symbol('orm:object:fields');
-const ormClasses = new Map<string, OrmObjectLiteral>();
+const ormClasses = new Map<string, ObjectLiteral>();
 const ormPackageCreators = new Map<string, AccountAddress>();
 const defaultTokenFields: Set<string> = new Set(['name', 'uri', 'description']);
 
@@ -23,7 +23,7 @@ export function getOrmClass(class_name: string) {
 }
 
 export function getOrmClasses(package_name: string) {
-  const classes: OrmObjectLiteral[] = [];
+  const classes: ObjectLiteral[] = [];
   for (const [_, value] of ormClasses) {
     if (getOrmClassMetadata(value).package_name === package_name) {
       classes.push(value);
@@ -308,7 +308,7 @@ function toTypeStringInMove(typeInTs: string, typeInMove?: OrmFieldCommonMoveTyp
   }
 }
 
-export function getOrmClassMetadata(ormobj: OrmObjectLiteral | Function | string) {
+export function getOrmClassMetadata(ormobj: ObjectLiteral | Function | string) {
   if (typeof ormobj === 'string') {
     ormobj = ormClasses.get(ormobj);
   } else if (typeof ormobj === 'object') {
@@ -322,7 +322,7 @@ export function getOrmClassMetadata(ormobj: OrmObjectLiteral | Function | string
   return meta;
 }
 
-export function getOrmClassFieldMetadata(ormobj: OrmObjectLiteral | Function | string, field_name: string) {
+export function getOrmClassFieldMetadata(ormobj: ObjectLiteral | Function | string, field_name: string) {
   if (typeof ormobj === 'string') {
     ormobj = ormClasses.get(ormobj);
   } else if (typeof ormobj === 'object') {
@@ -333,7 +333,7 @@ export function getOrmClassFieldMetadata(ormobj: OrmObjectLiteral | Function | s
   return data;
 }
 
-export function loadNamedAddresses(ormobj: OrmObjectLiteral) {
+export function loadNamedAddresses(ormobj: ObjectLiteral) {
   const meta = getOrmClassMetadata(ormobj);
   return meta.named_addresses;
 }

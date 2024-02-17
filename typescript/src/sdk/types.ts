@@ -159,7 +159,7 @@ export type OrmObjectConfig = {
 };
 
 export interface OrmClassMetadata extends OrmObjectConfig {
-  class: OrmObjectLiteral;
+  class: ObjectLiteral;
   package_creator: AccountAddress;
   package_address: AccountAddress;
   name: string; // name of the object
@@ -206,7 +206,7 @@ export type OrmPackageConfig = {
   /** The package name where the objects belongs to */
   package_move_path: string;
   package_name: string;
-  ormobjs: Object[];
+  ormobjs: any[];
   named_addresses?: NamedAddresses;
   local_apto_orm_package?: string; // path to local package
 };
@@ -214,7 +214,7 @@ export type OrmPackageConfig = {
 /**
  * Interface of the simple literal object with any string keys.
  */
-export interface OrmObjectLiteral {
+export interface ObjectLiteral {
   [key: string]: any;
 }
 export const object_addr = Symbol.for('orm:object:address');
@@ -222,23 +222,24 @@ export const object_addr = Symbol.for('orm:object:address');
 /**
  * Interface of the simple literal object with account address.
  */
-export interface OrmObjectAddressable extends OrmObjectLiteral {
+export interface ObjectAddressable extends ObjectLiteral {
   [object_addr]: AccountAddress;
 }
 
 /**
  * Represents some Type of the Object.
  */
-export type OrmObjectType<T> = { new (): T } | Function;
+export type ClassType<T> = { new (): T } | Function;
 
+export type ClassName = string;
 /**
  * OrmObject target.
  */
 export type OrmObjectTarget<T> =
-  | OrmObjectType<T>
-  | OrmObjectLiteral
-  | OrmObjectAddressable
+  | ClassType<T>
+  | ObjectLiteral
+  | ObjectAddressable
   | {
       address: AccountAddressInput;
-      object: OrmObjectType<T> | OrmObjectLiteral | string;
+      object: ClassType<T> | ObjectLiteral | ClassName;
     };

@@ -12,13 +12,13 @@ import {
 import {
   OrmObjectConfig,
   NamedAddresses,
-  OrmObjectLiteral,
+  ObjectLiteral,
   OrmObjectTarget,
-  OrmObjectType,
+  ClassType,
   OrmClassMetadata,
   OrmFieldData,
   object_addr,
-  OrmObjectAddressable,
+  ObjectAddressable,
 } from './types';
 import { sha3_256 as sha3Hash } from '@noble/hashes/sha3';
 import toml from 'toml';
@@ -217,18 +217,18 @@ export function areUint8ArraysEqual(arr1: Uint8Array, arr2: Uint8Array) {
   return true;
 }
 
-export function loadOrmClassMetadata<OrmObject extends OrmObjectLiteral>(
+export function loadOrmClassMetadata<OrmObject extends ObjectLiteral>(
   target: OrmObjectTarget<OrmObject>,
   acquire_address: boolean = false
 ) {
   if (!target) {
     throw new Error('target is required');
   }
-  let object: OrmObjectLiteral | OrmObjectAddressable;
+  let object: ObjectLiteral | ObjectAddressable;
   let address: AccountAddress;
   let metadata: OrmClassMetadata;
   if (typeof target === 'function') {
-    const orm_class = target as OrmObjectType<OrmObject>;
+    const orm_class = target as ClassType<OrmObject>;
     metadata = getOrmClassMetadata(orm_class);
   } else {
     const any_target = target as any;
@@ -240,7 +240,7 @@ export function loadOrmClassMetadata<OrmObject extends OrmObjectLiteral>(
       }
     } else {
       // typeof target === 'object'
-      object = target as OrmObjectLiteral;
+      object = target as ObjectLiteral;
       metadata = getOrmClassMetadata(object.constructor);
     }
   }
@@ -289,7 +289,7 @@ export function toPrimitiveType(value: any, t: OrmFieldData) {
   return value;
 }
 
-export function setOrmObjectAddress(ormobj: OrmObjectLiteral, address: AccountAddress) {
+export function setOrmObjectAddress(ormobj: ObjectLiteral, address: AccountAddress) {
   if (typeof ormobj !== 'object') {
     throw new Error(`ormobj must be an object`);
   }
@@ -300,14 +300,14 @@ export function setOrmObjectAddress(ormobj: OrmObjectLiteral, address: AccountAd
     enumerable: false,
     writable: true,
   });
-  return o as OrmObjectAddressable;
+  return o as ObjectAddressable;
 }
 
-export function getOrmObjectAddress(ormobj: OrmObjectLiteral) {
+export function getOrmObjectAddress(ormobj: ObjectLiteral) {
   return getOrmObjectAccountAddress(ormobj)?.toString();
 }
 
-export function getOrmObjectAccountAddress(ormobj: OrmObjectLiteral) {
+export function getOrmObjectAccountAddress(ormobj: ObjectLiteral) {
   if (typeof ormobj !== 'object') {
     throw new Error(`ormobj must be an object`);
   }
@@ -317,8 +317,8 @@ export function getOrmObjectAccountAddress(ormobj: OrmObjectLiteral) {
   }
 }
 
-export function getClassAddress<OrmObject extends OrmObjectLiteral>(
-  target: OrmObjectType<OrmObject> | OrmObjectLiteral | OrmObjectAddressable | string
+export function getClassAddress<OrmObject extends ObjectLiteral>(
+  target: ClassType<OrmObject> | ObjectLiteral | ObjectAddressable | string
 ) {
   if (!target) {
     throw new Error('target is required');
@@ -326,7 +326,7 @@ export function getClassAddress<OrmObject extends OrmObjectLiteral>(
   let address: AccountAddress;
   let metadata: OrmClassMetadata;
   if (typeof target === 'function') {
-    const orm_class = target as OrmObjectType<OrmObject>;
+    const orm_class = target as ClassType<OrmObject>;
     metadata = getOrmClassMetadata(orm_class);
   } else {
     metadata = getOrmClassMetadata(target);

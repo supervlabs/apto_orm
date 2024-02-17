@@ -23,11 +23,11 @@ import {
   OrmTxnOptions,
   PendingTransaction,
   OrmFunctionPayload,
-  OrmObjectLiteral,
+  ObjectLiteral,
   OrmObjectTarget,
-  OrmObjectType,
+  ClassType,
   OrmClassMetadata,
-  OrmObjectAddressable,
+  ObjectAddressable,
 } from './types';
 import { getOrmClassMetadata } from './metadata';
 
@@ -323,7 +323,7 @@ export class OrmClient extends Aptos {
     );
   }
 
-  createTxnPayload<OrmObject extends OrmObjectLiteral>(obj: OrmObjectTarget<OrmObject>) {
+  createTxnPayload<OrmObject extends ObjectLiteral>(obj: OrmObjectTarget<OrmObject>) {
     const { metadata, object } = loadOrmClassMetadata(obj);
     const fields = metadata.fields;
     const args: any[] = [];
@@ -346,7 +346,7 @@ export class OrmClient extends Aptos {
     } as OrmFunctionPayload;
   }
 
-  async createTxn<OrmObject extends OrmObjectLiteral>(
+  async createTxn<OrmObject extends ObjectLiteral>(
     user: Account | AccountAddressInput,
     obj: OrmObjectTarget<OrmObject>,
     options?: OrmTxnOptions
@@ -354,7 +354,7 @@ export class OrmClient extends Aptos {
     return await this.generateOrmTxn([user], this.createTxnPayload(obj), options);
   }
 
-  createToTxnPayload<OrmObject extends OrmObjectLiteral>(obj: OrmObjectTarget<OrmObject>, to: AccountAddressInput) {
+  createToTxnPayload<OrmObject extends ObjectLiteral>(obj: OrmObjectTarget<OrmObject>, to: AccountAddressInput) {
     const { metadata, object } = loadOrmClassMetadata(obj);
     const fields = metadata.fields;
     const args: any[] = [];
@@ -384,7 +384,7 @@ export class OrmClient extends Aptos {
     } as OrmFunctionPayload;
   }
 
-  async createToTxn<OrmObject extends OrmObjectLiteral>(
+  async createToTxn<OrmObject extends ObjectLiteral>(
     user: Account | AccountAddressInput,
     obj: OrmObjectTarget<OrmObject>,
     to: AccountAddressInput,
@@ -393,18 +393,18 @@ export class OrmClient extends Aptos {
     return await this.generateOrmTxn([user], this.createToTxnPayload(obj, to), options);
   }
 
-  updateTxnPayload<OrmObject extends OrmObjectLiteral>(obj: OrmObjectTarget<OrmObject>) {
+  updateTxnPayload<OrmObject extends ObjectLiteral>(obj: OrmObjectTarget<OrmObject>) {
     const { address, metadata, object } = loadOrmClassMetadata(obj, true);
     const fields = metadata.fields;
     const args: any[] = [address];
     const type_args: string[] = [];
     fields.forEach((field) => {
       if (field.index || !field.writable || field.immutable) return;
-      const value = object[field.property_key as keyof OrmObjectLiteral];
+      const value = object[field.property_key as keyof ObjectLiteral];
       if (value === undefined) {
         throw new Error(`OrmField '${field.property_key}' is not defined`);
       }
-      args.push(object[field.property_key as keyof OrmObjectLiteral]);
+      args.push(object[field.property_key as keyof ObjectLiteral]);
     });
     if (!metadata.package_address) {
       throw new Error(`package address is not defined`);
@@ -416,7 +416,7 @@ export class OrmClient extends Aptos {
     } as OrmFunctionPayload;
   }
 
-  async updateTxn<OrmObject extends OrmObjectLiteral>(
+  async updateTxn<OrmObject extends ObjectLiteral>(
     user: Account | AccountAddressInput,
     obj: OrmObjectTarget<OrmObject>,
     options?: OrmTxnOptions
@@ -424,7 +424,7 @@ export class OrmClient extends Aptos {
     return await this.generateOrmTxn([user], this.updateTxnPayload(obj), options);
   }
 
-  deleteTxnPayload<OrmObject extends OrmObjectLiteral>(obj: OrmObjectTarget<OrmObject>) {
+  deleteTxnPayload<OrmObject extends ObjectLiteral>(obj: OrmObjectTarget<OrmObject>) {
     const { address, metadata } = loadOrmClassMetadata(obj, true);
     const args: any[] = [address];
     const type_args: string[] = [];
@@ -438,7 +438,7 @@ export class OrmClient extends Aptos {
     } as OrmFunctionPayload;
   }
 
-  async deleteTxn<OrmObject extends OrmObjectLiteral>(
+  async deleteTxn<OrmObject extends ObjectLiteral>(
     user: Account | AccountAddressInput,
     obj: OrmObjectTarget<OrmObject>,
     options?: OrmTxnOptions
@@ -446,7 +446,7 @@ export class OrmClient extends Aptos {
     return await this.generateOrmTxn([user], this.deleteTxnPayload(obj), options);
   }
 
-  async transferForciblyTxn<OrmObject extends OrmObjectLiteral>(
+  async transferForciblyTxn<OrmObject extends ObjectLiteral>(
     user: Account | AccountAddressInput,
     obj: OrmObjectTarget<OrmObject> | AccountAddressInput,
     to: AccountAddressInput,
@@ -489,7 +489,7 @@ export class OrmClient extends Aptos {
     );
   }
 
-  async getObject<OrmObject extends OrmObjectLiteral>(obj: OrmObjectTarget<OrmObject>, raise_error: boolean = true) {
+  async getObject<OrmObject extends ObjectLiteral>(obj: OrmObjectTarget<OrmObject>, raise_error: boolean = true) {
     try {
       const { address, metadata } = loadOrmClassMetadata(obj, true);
       const fields = metadata.fields;
@@ -506,10 +506,10 @@ export class OrmClient extends Aptos {
       const dataobj = Object.create((metadata.class as any).prototype);
       rvalues.forEach((r, i) => {
         const field = fields[i];
-        dataobj[field.property_key as keyof OrmObjectLiteral] = toPrimitiveType(r, field);
+        dataobj[field.property_key as keyof ObjectLiteral] = toPrimitiveType(r, field);
       });
       setOrmObjectAddress(dataobj, address);
-      return dataobj as OrmObject & OrmObjectAddressable;
+      return dataobj as OrmObject & ObjectAddressable;
     } catch (e) {
       if (raise_error) {
         throw e;
@@ -518,7 +518,7 @@ export class OrmClient extends Aptos {
     }
   }
 
-  getAddress<OrmObject extends OrmObjectLiteral>(obj: OrmObjectTarget<OrmObject>, raise_error: boolean = true) {
+  getAddress<OrmObject extends ObjectLiteral>(obj: OrmObjectTarget<OrmObject>, raise_error: boolean = true) {
     try {
       const addr = getOrmObjectAddress(obj);
       if (!addr) {
@@ -534,11 +534,11 @@ export class OrmClient extends Aptos {
     }
   }
 
-  retrieveOrmObjectAddressesFromTxnr<OrmObject extends OrmObjectLiteral>(
+  retrieveOrmObjectAddressesFromTxnr<OrmObject extends ObjectLiteral>(
     txnr: any,
     filter?: {
       event_type?: 'created' | 'deleted';
-      object_type?: OrmObjectType<OrmObject> | OrmObjectLiteral | string;
+      object_type?: ClassType<OrmObject> | ObjectLiteral | string;
       change_type?: 'write_resource' | 'delete_resource';
     }
   ) {
@@ -586,11 +586,11 @@ export class OrmClient extends Aptos {
     return [...new Set(addresses)];
   }
 
-  retrieveOrmObjectAddressFromTxnr<OrmObject extends OrmObjectLiteral>(
+  retrieveOrmObjectAddressFromTxnr<OrmObject extends ObjectLiteral>(
     txnr: any,
     filter?: {
       event_type?: 'created' | 'deleted';
-      object_type?: OrmObjectType<OrmObject> | OrmObjectLiteral | string;
+      object_type?: ClassType<OrmObject> | ObjectLiteral | string;
       change_type?: 'write_resource' | 'delete_resource';
     }
   ) {
