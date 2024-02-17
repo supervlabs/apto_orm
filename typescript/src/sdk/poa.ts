@@ -2,25 +2,13 @@
 import {
   AnyNumber,
   Serializer,
-  Deserializer,
   MoveFunctionId,
-  MoveType,
-  MoveValue,
   AccountAddress,
   AccountAddressInput,
-  Hex,
   HexInput,
   Account,
-  InputGenerateTransactionPayloadData,
-  InputGenerateTransactionOptions,
-  PendingTransactionResponse,
-  AnyRawTransaction,
-  SimpleTransaction,
-  MultiAgentTransaction,
-  AccountAuthenticator,
-  EntryFunctionArgumentTypes,
 } from '@aptos-labs/ts-sdk';
-import { getOrmAccountAddress, getOrmAddress, toAddress } from './utilities';
+import { getOrmAccountAddress, toAddress } from './utilities';
 import { OrmClient } from './client';
 import { OrmTxnOptions } from './types';
 

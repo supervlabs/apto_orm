@@ -1,5 +1,5 @@
-import { describe, beforeEach, afterEach, expect, test, it } from '@jest/globals';
-import orm, { OrmClass, OrmField, OrmIndexField, snakeToCamel, loadNamedAddresses } from '../sdk';
+import { describe, beforeEach, afterEach, expect, it } from '@jest/globals';
+import orm, { OrmClass, OrmField, snakeToCamel } from '../sdk';
 import path from 'path';
 import fs from 'fs';
 
@@ -87,7 +87,7 @@ describe('AptoORM Object', () => {
     const classAddr = orm.getClassAddress(PostObject).toString();
     expect(classAddr).toBeDefined();
     expect(orm.getClassAddress(a).toString()).toBe(classAddr);
-    expect(orm.getClassAddress("PostObject").toString()).toBe(classAddr);
+    expect(orm.getClassAddress('PostObject').toString()).toBe(classAddr);
 
     const c: PostObject = new PostObject({
       title: '3th title',

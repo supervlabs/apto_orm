@@ -1,5 +1,4 @@
 import fs from 'fs';
-import path from 'path';
 import { OrmFieldTypeString, OrmClassMetadata, OrmFieldData } from './types';
 import { ensureAddressString } from './utilities';
 import { MoveValue } from '@aptos-labs/ts-sdk';

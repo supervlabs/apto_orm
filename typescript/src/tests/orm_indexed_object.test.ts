@@ -1,5 +1,5 @@
-import { describe, beforeEach, afterEach, expect, test, it } from '@jest/globals';
-import orm, { OrmClass, OrmField, OrmIndexField, snakeToCamel, loadNamedAddresses } from '../sdk';
+import { describe, beforeEach, afterEach, expect, it } from '@jest/globals';
+import orm, { OrmClass, OrmField, OrmIndexField, snakeToCamel } from '../sdk';
 import path from 'path';
 import fs from 'fs';
 import { AptosConfig, Network } from '@aptos-labs/ts-sdk';

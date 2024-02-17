@@ -2,20 +2,10 @@ import path from 'path';
 import fs from 'fs';
 import util from 'util';
 import {
-  MoveType,
-  MoveValue,
   AccountAddress,
   AccountAddressInput,
   Hex,
-  HexInput,
   Account,
-  InputGenerateTransactionPayloadData,
-  InputGenerateTransactionOptions,
-  PendingTransactionResponse,
-  AnyRawTransaction,
-  SimpleTransaction,
-  MultiAgentTransaction,
-  AccountAuthenticator,
   Ed25519PrivateKey,
   GenerateAccount,
 } from '@aptos-labs/ts-sdk';

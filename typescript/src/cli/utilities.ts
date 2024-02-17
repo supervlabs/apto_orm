@@ -1,18 +1,12 @@
 import { Command } from 'commander';
 import fs from 'fs';
 import path from 'path';
-import {
-  OrmClient,
-  OrmFreePostpayClient,
-  OrmFreePrepayClient,
-  FeeFreeSettings,
-  getOrmClass,
-  getOrmClasses,
-} from '../sdk';
+import { OrmClient, OrmFreePostpayClient, OrmFreePrepayClient, getOrmClass, getOrmClasses } from '../sdk';
 import { AptosConfig } from '@aptos-labs/ts-sdk';
 
 export function loadOrmClient(program: Command) {
-  let { network, node_url, node_api_key, node_headers, prepay_url, postpay_url, fee_free_headers } = program.optsWithGlobals();
+  const { network, node_url, node_api_key, node_headers, prepay_url, postpay_url, fee_free_headers } =
+    program.optsWithGlobals();
   const api_key = node_api_key || process.env.APTOS_NODE_API_KEY;
   const headers: any = {};
   (node_headers || process.env.APTOS_NODE_HEADERS || []).map((h: string) => {
@@ -22,7 +16,7 @@ export function loadOrmClient(program: Command) {
   const config = new AptosConfig({
     network: network || (process.env.APTOS_NETWORK as any),
     fullnode: node_url || process.env.APTOS_NODE_URL,
-    clientConfig: api_key && headers.length > 0 ? { API_KEY:api_key, HEADERS: headers } : undefined,
+    clientConfig: api_key && headers.length > 0 ? { API_KEY: api_key, HEADERS: headers } : undefined,
   });
   if (prepay_url)
     return new OrmFreePrepayClient(config, {
@@ -81,6 +75,7 @@ export async function loadPackageClasses(package_name: string, package_path: str
   // }
   // use ts-node to transpile ts.
   // ref: https://dev.to/calebpitan/the-magic-of-using-typescript-at-runtime-5oj
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   require('ts-node').register();
   if (!fs.existsSync(package_path)) {
     return [];

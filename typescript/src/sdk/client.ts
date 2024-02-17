@@ -73,7 +73,7 @@ export class OrmClient extends Aptos {
 
   private static check(obj: unknown, name: string) {
     return (
-      typeof obj === 'object' && obj !== null && (obj as { '@instanceof': Symbol })['@instanceof'] === Symbol.for(name)
+      typeof obj === 'object' && obj !== null && (obj as { '@instanceof': symbol })['@instanceof'] === Symbol.for(name)
     );
   }
 

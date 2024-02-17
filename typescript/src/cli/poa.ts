@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import { loadOrmClient, checkPackagePath, loadPackageClasses } from './utilities';
+import { loadOrmClient } from './utilities';
 import orm, { AccountAddress, loadAccountFromPrivatekeyFile, parseJson, stringifyJson, toAddress } from '../sdk';
 import fs from 'fs';
 import path from 'path';

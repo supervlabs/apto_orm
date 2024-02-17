@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@jest/globals';
-import orm, { OrmTokenClass, OrmField, OrmIndexField, snakeToCamel, debug } from '../sdk';
+import orm, { OrmTokenClass, OrmField, snakeToCamel } from '../sdk';
 import path from 'path';
 import fs from 'fs';
 

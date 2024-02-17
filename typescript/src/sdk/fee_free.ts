@@ -56,14 +56,14 @@ export function serializeOrmTxn(ormtxn: OrmTxn): SerializedOrmTxn {
 export function deserializeOrmTxn(ormtxnSerialized: SerializedOrmTxn) {
   if (!ormtxnSerialized) throw new Error('ormtxn is undefined');
   const s = Buffer.from(ormtxnSerialized, 'hex');
-  let d = new Deserializer(s);
+  const d = new Deserializer(s);
   const type = d.deserializeStr();
   if (type !== 'simple' && type !== 'multiAgent') {
     throw new Error('invalid ormtxn type');
   }
   const txn = RawTransaction.deserialize(d);
   let length = d.deserializeU64();
-  let secondarySignerAddresses: AccountAddress[] = [];
+  const secondarySignerAddresses: AccountAddress[] = [];
   for (let i = 0; i < length; i++) {
     secondarySignerAddresses.push(AccountAddress.deserialize(d));
   }
@@ -72,7 +72,7 @@ export function deserializeOrmTxn(ormtxnSerialized: SerializedOrmTxn) {
     feePayerAddress = AccountAddress.deserialize(d);
   }
   length = d.deserializeU64();
-  let auths: (AccountAuthenticator | null)[] = [];
+  const auths: (AccountAuthenticator | null)[] = [];
   for (let i = 0; i < length; i++) {
     if (d.deserializeBool()) {
       auths.push(AccountAuthenticator.deserialize(d));

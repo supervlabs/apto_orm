@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@jest/globals';
-import orm, { OrmTokenClass, OrmField, OrmIndexField, snakeToCamel, debug } from '../sdk';
+import orm, { OrmTokenClass, OrmField, OrmIndexField, snakeToCamel } from '../sdk';
 import path from 'path';
 import fs from 'fs';
 
@@ -71,7 +71,7 @@ describe('AptoORM Token', () => {
     const classAddr = orm.getClassAddress(Membership).toString();
     expect(classAddr).toBeDefined();
     expect(orm.getClassAddress(membership).toString()).toBe(classAddr);
-    expect(orm.getClassAddress("Membership").toString()).toBe(classAddr);
+    expect(orm.getClassAddress('Membership').toString()).toBe(classAddr);
 
     let txn = await client.createTxn(package_creator, membership);
     let ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);

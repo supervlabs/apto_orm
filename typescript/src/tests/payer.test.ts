@@ -1,13 +1,5 @@
-import { describe, beforeEach, afterEach, expect, test, it, beforeAll } from '@jest/globals';
-import orm, {
-  OrmClass,
-  OrmField,
-  OrmIndexField,
-  snakeToCamel,
-  loadNamedAddresses,
-  createAccount,
-  toAddress,
-} from '../sdk';
+import { describe, beforeEach, afterEach, expect, it, beforeAll } from '@jest/globals';
+import orm, { OrmClass, OrmField, snakeToCamel, createAccount, toAddress } from '../sdk';
 import path from 'path';
 import fs from 'fs';
 import { deserializeOrmTxn, serializeOrmTxn } from '../sdk/fee_free';
@@ -48,20 +40,24 @@ export class PostObject {
 describe('AptoORM Object', () => {
   beforeAll(async () => {
     const txn = await client.transferCoinsTxn(payer, toAddress(package_creator), 0);
-    let txnr = await client.signSubmitAndWaitOrmTxnWithResult([], txn);
+    const txnr = await client.signSubmitAndWaitOrmTxnWithResult([], txn);
     console.log('transferCoinsTxn', txnr.hash);
     console.log('package_creator', package_creator.accountAddress.toString());
   });
 
-  beforeEach(() => {});
+  beforeEach(() => {
+    // console.log('beforeEach');
+  });
 
-  afterEach(() => {});
+  afterEach(() => {
+    // console.log('beforeEach');
+  });
 
   it('Test to define, generate, compile, publish and create AptoORM Object', async () => {
     // 1. create an package account
     let txn = await orm.createPackageTxn(client, package_creator, package_name, { payer });
 
-    let stxn = serializeOrmTxn(txn);
+    const stxn = serializeOrmTxn(txn);
     txn = deserializeOrmTxn(stxn);
 
     let txnr = await client.signSubmitAndWaitOrmTxnWithResult([], txn);
@@ -114,7 +110,7 @@ describe('AptoORM Object', () => {
 
     // 4. create the objects to onchain
     txn = await client.createTxn(package_creator, a, { payer: true });
-    let ptxn = await client.signAndsubmitOrmTxn([package_creator], txn, { payer });
+    const ptxn = await client.signAndsubmitOrmTxn([package_creator], txn, { payer });
     txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
     const a_address = client.retrieveOrmObjectAddressFromTxnr(txnr);
     console.log('createTxn', txnr.hash);

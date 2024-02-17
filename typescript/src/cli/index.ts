@@ -4,7 +4,6 @@ import fs from 'fs';
 import path from 'path';
 import YAML from 'yaml';
 import orm, {
-  OrmClient,
   OrmFreePostpayClient,
   OrmFreePrepayClient,
   getOrmPackageCreator,
@@ -12,29 +11,8 @@ import orm, {
   loadAccountFromPrivatekeyFile,
   toAddress,
 } from '../sdk';
-import {
-  Aptos,
-  AptosConfig,
-  ClientConfig,
-  Network,
-  MoveType,
-  MoveValue,
-  AccountAddress,
-  AccountAddressInput,
-  Hex,
-  HexInput,
-  Account,
-  InputGenerateTransactionPayloadData,
-  InputGenerateTransactionOptions,
-  PendingTransactionResponse,
-  AnyRawTransaction,
-  SimpleTransaction,
-  MultiAgentTransaction,
-  AccountAuthenticator,
-  EntryFunctionArgumentTypes,
-} from '@aptos-labs/ts-sdk';
+import { Account } from '@aptos-labs/ts-sdk';
 
-import yaml from 'yaml';
 import { loadBaseObjectString, loadBaseTokenString } from './classes';
 import { loadOrmClient, checkPackagePath, loadPackageClasses, getNodeUrl } from './utilities';
 import { poa } from './poa';
@@ -97,9 +75,9 @@ program
   .action(async function () {
     const { classes, random_key, key, token, update_tsconfig } = this.opts();
     const update_profile = false;
-    let package_name: string;
     let package_path: string = this.args[0];
-    [package_path, package_name] = checkPackagePath(package_path);
+    const [_package_path, package_name] = checkPackagePath(package_path);
+    package_path = _package_path;
     let package_owner: Account;
     if (key) {
       package_owner = loadAccountFromPrivatekeyFile(key);
@@ -135,7 +113,7 @@ program
       }
       let content: any;
       try {
-        const configyaml = yaml.parseDocument(fs.readFileSync(path.resolve(dotaptos, `config.yaml`), 'utf8'));
+        const configyaml = YAML.parseDocument(fs.readFileSync(path.resolve(dotaptos, `config.yaml`), 'utf8'));
         content = configyaml.toJSON();
         content['profiles'] = content['profiles'] || {};
       } catch (e) {
@@ -149,7 +127,7 @@ program
         account: toAddress(package_creator).toString(),
         rest_url: getNodeUrl(program),
       };
-      fs.writeFileSync(path.resolve(dotaptos, `config.yaml`), '---\n' + yaml.stringify(content));
+      fs.writeFileSync(path.resolve(dotaptos, `config.yaml`), '---\n' + YAML.stringify(content));
     }
     if (!fs.existsSync(package_path)) {
       fs.mkdirSync(package_path, { recursive: true });
@@ -211,10 +189,10 @@ program
   .argument('<package_path>', 'The AptoORM package path and name')
   .option('-c, --classes [classes...]', 'The class names to be generated')
   .action(async function () {
-    const { key, classes } = this.opts();
-    let package_name: string;
+    const { classes } = this.opts();
     let package_path: string = this.args[0];
-    [package_path, package_name] = checkPackagePath(package_path);
+    const [_package_path, package_name] = checkPackagePath(package_path);
+    package_path = _package_path;
     if (!fs.existsSync(package_path)) {
       fs.mkdirSync(package_path, { recursive: true });
     }
@@ -299,14 +277,13 @@ program
     const client = loadOrmClient(program);
     const { key, data, to } = this.opts();
     const class_name = this.opts()?.class;
-    let package_name: string;
     let package_path: string = this.args[0];
-    [package_path, package_name] = checkPackagePath(package_path);
-    let package_owner: Account;
+    const [_package_path, package_name] = checkPackagePath(package_path);
+    package_path = _package_path;
     if (!key) {
       throw new Error(`key file not specified`);
     }
-    package_owner = loadAccountFromPrivatekeyFile(key);
+    const package_owner: Account = loadAccountFromPrivatekeyFile(key);
     const ormclasses = await loadPackageClasses(package_name, package_path, [class_name]);
     if (ormclasses.length === 0) {
       throw new Error(`class '${class_name}' not found`);
@@ -345,14 +322,13 @@ program
     const client = loadOrmClient(program);
     const { key, data } = this.opts();
     const class_name = this.opts()?.class;
-    let package_name: string;
     let package_path: string = this.args[0];
-    [package_path, package_name] = checkPackagePath(package_path);
-    let package_owner: Account;
+    const [_package_path, package_name] = checkPackagePath(package_path);
+    package_path = _package_path;
     if (!key) {
       throw new Error(`key file not specified`);
     }
-    package_owner = loadAccountFromPrivatekeyFile(key);
+    const package_owner = loadAccountFromPrivatekeyFile(key);
     const ormclasses = await loadPackageClasses(package_name, package_path, [class_name]);
     if (ormclasses.length === 0) {
       throw new Error(`class '${class_name}' not found`);
@@ -382,14 +358,13 @@ program
     const client = loadOrmClient(program);
     const { key } = this.opts();
     const class_name = this.opts()?.class;
-    let package_name: string;
     let package_path: string = this.args[0];
-    [package_path, package_name] = checkPackagePath(package_path);
-    let package_owner: Account;
+    const [_package_path, package_name] = checkPackagePath(package_path);
+    package_path = _package_path;
     if (!key) {
       throw new Error(`key file not specified`);
     }
-    package_owner = loadAccountFromPrivatekeyFile(key);
+    const package_owner = loadAccountFromPrivatekeyFile(key);
     const ormclasses = await loadPackageClasses(package_name, package_path, [class_name]);
     if (ormclasses.length === 0) {
       throw new Error(`class '${class_name}' not found`);
@@ -406,7 +381,6 @@ program
     console.log(`created objects:`, objects);
   });
 
-
 program
   .command('transfer-by-force')
   .description('Transfer a target object using indirect transfer method')
@@ -416,11 +390,10 @@ program
   .action(async function () {
     const client = loadOrmClient(program);
     const { key, address, to } = this.opts();
-    let creator_or_owner: Account;
     if (!key) {
       throw new Error(`key file not specified`);
     }
-    creator_or_owner = loadAccountFromPrivatekeyFile(key);
+    const creator_or_owner = loadAccountFromPrivatekeyFile(key);
     const txn = await client.transferForciblyTxn(creator_or_owner, address, to);
     const ptxn = await client.signAndsubmitOrmTxn([creator_or_owner], txn);
     const txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
@@ -443,7 +416,7 @@ export const orm_class = new Command('class')
     const { key, class_address, class_name, data } = this.opts();
     let target_class_address = class_address;
     if (!class_address) {
-      const [package_creator, package_name, package_address] = loadPackageAddress(this);
+      const [, , package_address] = loadPackageAddress(this);
       const resources = await client.getAccountResources({ accountAddress: package_address });
       for (const resource of resources) {
         if (resource.type.startsWith(`${client.ormAddress}::orm_module::OrmModule<`)) {

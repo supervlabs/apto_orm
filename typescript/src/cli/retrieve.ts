@@ -9,7 +9,7 @@ import YAML from 'yaml';
 export function loadPackageAddress(program: Command) {
   const { key, address, creator, name } = program.optsWithGlobals();
   const package_path = program.opts()?.path || program.args[0];
-  let package_name = name || package_path ? path.basename(package_path) : undefined;
+  const package_name = name || package_path ? path.basename(package_path) : undefined;
   let package_creator = creator;
   let package_address: AccountAddressInput = address as string;
   if (!package_address) {
