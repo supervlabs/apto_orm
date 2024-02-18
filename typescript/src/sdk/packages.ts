@@ -213,14 +213,14 @@ export async function publishPackageTxns(
   const modules_bytes: Uint8Array[] = [];
   const _metadata = fs.readFileSync(mpath);
   const mbytes = Hex.fromString(_metadata.toString('hex')).toUint8Array();
-  let total_size = mbytes.length;
+  // let total_size = mbytes.length;
   const files = retrieveFilesInDir(path.join(package_move_path, 'build', packageName, 'bytecode_modules'), [
     'dependencies',
   ]);
   for (const file of files) {
     const moduleData = fs.readFileSync(file);
     const moduleBytes = Hex.fromString(moduleData.toString('hex')).toUint8Array();
-    total_size += moduleBytes.length;
+    // total_size += moduleBytes.length;
     // modules.push(new TxnBuilderTypes.Module(moduleBytes));
     modules_bytes.push(moduleBytes);
   }
@@ -237,21 +237,8 @@ export async function publishPackageTxns(
   };
   // Chunk the metadata and insert it into ormtxns. The last chunk may be small enough
   // to be placed with other data. This may also be the only chunk.
-  let sequence_number: string;
-  try {
-    // const account_data = await client.getAccount(user.address());
-    const account_data = await client.getAccountInfo({ accountAddress: user.accountAddress });
-    sequence_number = account_data.sequence_number;
-  } catch (err) {
-    throw err;
-    // if (err.error_code != 'account_not_found') {
-    //   throw err;
-    // }
-    // if (!options?.payer) {
-    //   throw new Error("user account doesn't exist, please provide a payer account");
-    // }
-    // sequence_number = '0';
-  }
+  const account_data = await client.getAccountInfo({ accountAddress: user.accountAddress });
+  const sequence_number = account_data.sequence_number;
   let _cleanup = true;
   const cleanup = () => {
     if (_cleanup) {
