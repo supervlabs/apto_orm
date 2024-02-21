@@ -11,5 +11,5 @@ export {
 } from './fee_free';
 export * from './utilities';
 export * from './poa';
-export { generateMoveToml } from './gen-toml';
+export { generateMoveToml, generateToml } from './gen-toml';
 export { generateMove } from './gen-move';
