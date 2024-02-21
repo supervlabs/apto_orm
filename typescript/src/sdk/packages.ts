@@ -165,6 +165,29 @@ export function compilePackage(config: Pick<OrmPackageConfig, 'package_move_path
   }
 }
 
+export function testPackage(config: Pick<OrmPackageConfig, 'package_move_path' | 'named_addresses'>) {
+  const { package_move_path, named_addresses } = config;
+  if (!package_move_path) {
+    throw new Error('package_move_path is required');
+  }
+  try {
+    execSync('aptos --version');
+  } catch (err) {
+    throw new Error(
+      'install aptos-cli through the command `curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3`'
+    );
+  }
+  let command = `cd ${package_move_path} && aptos move test`;
+  const address = Object.entries(named_addresses || {}).map(([name, addr]) => `${name}=${addr}`);
+  if (address.length > 0) command = command + ` --named-addresses ${address.join(',')}`;
+  try {
+    execSync(command, { timeout: 40000 });
+  } catch (err) {
+    console.log(err.stdout.toString()); // err.stderr.toString()
+    throw new Error(err.stdout.toString());
+  }
+}
+
 export function generatePackage(config: OrmPackageConfig) {
   const { package_creator, package_name, package_move_path, named_addresses, ormobjs, local_apto_orm_package } = config;
   if (!package_creator) {
