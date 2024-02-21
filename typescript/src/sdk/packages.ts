@@ -180,7 +180,7 @@ export function generatePackage(config: OrmPackageConfig) {
     throw new Error('package_name should not include `-`');
   }
   const package_address = getPackageAddress(package_creator, package_name);
-  generateMoveToml(package_move_path, package_name, package_address, local_apto_orm_package);
+  generateMoveToml(package_move_path, package_creator, package_name, package_address, local_apto_orm_package);
   for (const o of ormobjs) {
     const classdata = getOrmClassMetadata(o);
     classdata.named_addresses = named_addresses;

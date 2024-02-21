@@ -1,10 +1,11 @@
 import fs from 'fs';
 import path from 'path';
-import { ensureAddress, getOrmAddress, snakeToCamel } from './utilities';
-import { MaybeHexString } from 'aptos';
+import { ensureAddress, getOrmAddress, snakeToCamel, toAddress } from './utilities';
+import { MaybeHexString, AptosAccount } from 'aptos';
 
 export function generateMoveToml(
   package_path: string,
+  package_creator: AptosAccount | MaybeHexString,
   package_name: string,
   package_address: MaybeHexString,
   local_apto_orm_package?: string
@@ -24,6 +25,7 @@ version = '1.0.0'
 
 [addresses]
 apto_orm = "${apto_orm_address}"
+package_creator = "${toAddress(package_creator)}"
 ${package_name} = "${ensureAddress(package_address)}"
 
 [dependencies]
