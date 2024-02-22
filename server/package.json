@@ -1,6 +1,6 @@
 {
   "name": "fee_free_server",
-  "version": "1.1.0",
+  "version": "2.0.1",
   "description": "AptoORM Payment Server to serve free fee payment service",
   "main": "dist/server.js",
   "scripts": {
