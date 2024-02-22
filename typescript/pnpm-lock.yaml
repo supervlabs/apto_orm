@@ -17,9 +17,6 @@ dependencies:
   commander:
     specifier: ^11.1.0
     version: 11.1.0
-  dotenv:
-    specifier: ^16.3.1
-    version: 16.3.1
   reflect-metadata:
     specifier: ^0.1.13
     version: 0.1.14
@@ -1711,11 +1708,6 @@ packages:
     dependencies:
       esutils: 2.0.3
     dev: true
-
-  /dotenv@16.3.1:
-    resolution: {integrity: sha512-IPzF4w4/Rd94bA9imS68tZBaYyBWSCE47V1RGuMrB94iyTOIEwRmVL2x/4An+6mETpLrKJ5hQkB8W4kFAadeIQ==}
-    engines: {node: '>=12'}
-    dev: false
 
   /electron-to-chromium@1.4.616:
     resolution: {integrity: sha512-1n7zWYh8eS0L9Uy+GskE0lkBUNK83cXTVJI0pU3mGprFsbfSdAc15VTFbo+A+Bq4pwstmL30AVcEU3Fo463lNg==}
