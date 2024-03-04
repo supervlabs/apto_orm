@@ -7,6 +7,20 @@ const package_name = 'orm_token_property';
 const package_creator = orm.loadAccountFromPrivatekeyFile('../.key/user');
 const package_move_path = path.join(__dirname, '.move/orm_token_property');
 
+
+// an struct (resource) can be stored to the target object
+// MyHeroReward has copy, drop, store (no key) {
+//  rewarded_at: u64,
+//  reward_id: string,
+// }
+export class MyHeroReward {
+  @OrmField()
+  rewarded_at!: number;
+
+  @OrmField()
+  reward_id!: string;
+}
+
 @OrmTokenClass({
   package_name,
   package_creator,
@@ -37,7 +51,14 @@ export class MyHeroToken {
 
   @OrmField()
   comment!: string;
+
+  @OrmField()
+  reward!: MyHeroReward;
+
+  @OrmField()
+  rewards!: MyHeroReward[];
 }
+
 
 describe('AptoORM Token Property', () => {
   test('Test to define, generate, compile, publish and create AptoORM Token Property', async () => {
