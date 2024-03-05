@@ -9,6 +9,7 @@ import {
   ObjectLiteral,
   OrmFieldCommonMoveType,
   OrmFieldTypeString,
+  OrmFieldVectorMoveType,
 } from './types';
 import { camelToSnake, loadAddresses, toAddress } from './utilities';
 
@@ -260,8 +261,12 @@ export const OrmIndexField = (config?: OrmFieldConfig) => {
   return OrmField(config);
 };
 
-function toTypeStringInMove(typeInTs: string, typeInMove?: OrmFieldCommonMoveType): OrmFieldTypeString {
+function toTypeStringInMove(typeInTs: string, typeInMove?: OrmFieldCommonMoveType | OrmFieldVectorMoveType): OrmFieldTypeString {
   if (typeInMove) {
+    if (typeInMove.startsWith('vector<') && typeInMove.endsWith('>')) {
+      if (typeInTs !== 'Array') throw new Error('Type mismatch');
+      return typeInMove as OrmFieldTypeString;
+    }
     switch (typeInMove) {
       case 'address':
         return 'address';

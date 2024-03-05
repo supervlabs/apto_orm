@@ -78,7 +78,7 @@ export const constErrorCode = (errorCode: string) => {
 export const defineStruct = (class_data: OrmClassMetadata) => {
   const code: string[] = [];
   code.push(print(`#[resource_group_member(group = aptos_framework::object::ObjectGroup)]`));
-  code.push(indent(`struct ${class_data.name} has key, copy, drop {`));
+  code.push(indent(`struct ${class_data.name} has key, drop {`));
   class_data.fields.forEach((field) => {
     if (field.token_field) return;
     if (field.token_property) return;
@@ -164,7 +164,7 @@ const getUpdateFunctionArgs = (fields: OrmFieldData[]) => {
 
 export const createObjectFunction = (package_name: string, class_data: OrmClassMetadata) => {
   const code: string[] = [];
-  code.push(indent(`public fun create_object(`));
+  code.push(indent(`fun create_object(`));
   code.push(print(`user: &signer,`));
   class_data.fields.forEach((field) => {
     if (field.writable) {
@@ -299,7 +299,7 @@ export const createObjectFunction = (package_name: string, class_data: OrmClassM
 
 export const updateObjectFunction = (class_data: OrmClassMetadata) => {
   const code: string[] = [];
-  code.push(indent(`public fun update_object<T: key>(`));
+  code.push(indent(`fun update_object<T: key>(`));
   code.push(print(`user: &signer,`));
   code.push(print(`object: Object<T>,`));
   let need_acquires = false;
@@ -364,7 +364,7 @@ export const updateObjectFunction = (class_data: OrmClassMetadata) => {
 
 export const deleteObjectFunction = (class_data: OrmClassMetadata) => {
   const code: string[] = [];
-  code.push(indent(`public fun delete_object<T: key>(`));
+  code.push(indent(`fun delete_object<T: key>(`));
   code.push(print(`user: &signer,`));
   code.push(print(`object: Object<T>,`));
   code.push(unindent_then_indent(`) acquires ${class_data.name} {`));
@@ -476,7 +476,7 @@ export const getFunction = (class_data: OrmClassMetadata) => {
 
   code.push(print(`let ${o_num > 0 ? '' : '_'}o = object::address_to_object<${class_data.name}>(object);`));
   if (borrow_num > 0) {
-    code.push(print(`let user_data = *borrow_global<${class_data.name}>(object);`));
+    code.push(print(`let user_data = borrow_global<${class_data.name}>(object);`));
   }
   const get_result = class_data.fields.map((field) => {
     if (field.token_field) {

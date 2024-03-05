@@ -39,6 +39,19 @@ export type OrmFieldCommonMoveType =
   | 'u128'
   | 'u256'
   | 'bool';
+
+export type OrmFieldVectorMoveType =
+  | 'vector<address>'
+  | 'vector<u8>'
+  | 'vector<u16>'
+  | 'vector<u32>'
+  | 'vector<u64>'
+  | 'vector<u128>'
+  | 'vector<u256>'
+  | 'vector<bool>'
+  | 'vector<string::String>'
+  | 'vector<string>';
+
 // [FIXME] - add support for EntryFunctionArgumentTypes
 // | EntryFunctionArgumentTypes;
 
@@ -52,7 +65,7 @@ export type OrmFieldTypeString =
   | 'u256'
   | 'bool'
   | 'string::String'
-  | 'vector<u8>';
+  | OrmFieldVectorMoveType;
 
 // export interface OrmField extends Types.MoveStructField {}
 export interface OrmFieldConfig {
@@ -61,7 +74,7 @@ export interface OrmFieldConfig {
   /** The resource field name of onchain AptoOrm object */
   name?: string;
   /** The resource field type of onchain AptoOrm object */
-  type?: OrmFieldCommonMoveType;
+  type?: OrmFieldCommonMoveType | OrmFieldVectorMoveType;
   /** The default value of the field if it is empty value. */
   default?: MoveValue;
   /** Timestamp updated automatically */
