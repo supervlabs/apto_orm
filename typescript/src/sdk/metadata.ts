@@ -118,7 +118,8 @@ export function OrmClass(config: OrmObjectConfig) {
     }
     const user_fields: OrmFieldData[] = [];
     if (config?.token_config) {
-      config.token_config.token_use_property_map = token_use_property_map;
+      if (!config.token_config.token_use_property_map)
+        config.token_config.token_use_property_map = token_use_property_map;
       // set collection name
       if (!config.token_config.collection_name) {
         config.token_config.collection_name = target.name;
