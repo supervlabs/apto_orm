@@ -45,7 +45,6 @@ export class PetTicket {
 @OrmClass({
   package_name,
   package_creator,
-  deletable_by_owner: true,
 })
 export class GachaItems {
   @OrmIndexField({ immutable: true })
@@ -106,11 +105,11 @@ export class Pet {
   @OrmField({ token_property: true })
   grade!: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
-  @OrmField({ token_property: true })
-  level!: number;
-
   @OrmField({ token_property: true, type: 'address' })
-  type!: string;
+  derived_from!: string;
+
+  @OrmField({ type: 'address' })
+  pet_type!: string;
 
   @OrmField({ type: 'u64', timestamp: true })
   updated_at: Date;
