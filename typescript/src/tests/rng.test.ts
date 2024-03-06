@@ -38,8 +38,8 @@ export class PetTicket {
   @OrmField({ constant: '[FIXME] Pet Ticket description' })
   description!: string;
 
-  @OrmField({ token_property: true, type: 'address' })
-  derived_from!: string;
+  @OrmField({ token_property: true })
+  origin_token!: string;
 }
 
 @OrmClass({
@@ -94,7 +94,7 @@ export class GachaItems {
   royalty_numerator: 5,
 })
 export class Pet {
-  @OrmIndexField({ immutable: true })
+  @OrmField({ token_property: true })
   name!: string;
 
   @OrmField({ constant: 'https://raw.githubusercontent.com/neoul/apto_orm/main/resource.png' })
@@ -107,9 +107,9 @@ export class Pet {
   grade!: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
   @OrmField({ token_property: true, type: 'address' })
-  derived_from!: string;
+  pet_ticket!: string;
 
-  @OrmField({ type: 'address' })
+  @OrmField({ token_property: true, type: 'address' })
   pet_type!: string;
 
   @OrmField({ type: 'u64', timestamp: true })

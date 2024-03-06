@@ -203,6 +203,16 @@ export const createObjectFunction = (package_name: string, class_data: OrmClassM
       code.push(unindent(`);`));
       code.push(print(`let mutator_ref = token::generate_mutator_ref(&ref);`));
       code.push(print(`token::set_name(&mutator_ref, name);`));
+    } else if (class_data.token_config?.numbered_token) {
+      code.push(indent(`let ref = token::create_numbered_token(`));
+      code.push(print(`&creator_signer,`));
+      code.push(print(`string::utf8(b"${class_data.token_config.collection_name}"),`));
+      code.push(print(`description,`));
+      code.push(print(`name,`));
+      code.push(print(`string::utf8(b""),`));
+      code.push(print(`option::none(),`));
+      code.push(print(`uri,`));
+      code.push(unindent(`);`));
     } else {
       code.push(indent(`let ref = token::create(`));
       code.push(print(`&creator_signer,`));

@@ -51,8 +51,7 @@ export type OrmFieldVectorMoveType =
   | 'vector<bool>'
   | 'vector<string::String>'
   | 'vector<string>'
-  | 'vector<vector<u8>>'
-  ;
+  | 'vector<vector<u8>>';
 
 // [FIXME] - add support for EntryFunctionArgumentTypes
 // | EntryFunctionArgumentTypes;
@@ -139,6 +138,8 @@ export type OrmTokenConfig = {
   royalty_denominator: number;
   /** The numerator of the royalty */
   royalty_numerator: number;
+  /** Whether the token is numbered token */
+  numbered_token?: boolean;
 };
 
 export type OrmObjectConfig = {

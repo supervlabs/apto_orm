@@ -25,7 +25,7 @@ export function getOrmClass(class_name: string) {
 
 export function getOrmClasses(package_name: string) {
   const classes: ObjectLiteral[] = [];
-  for (const [_, value] of ormClasses) {
+  for (const [, value] of ormClasses) {
     if (getOrmClassMetadata(value).package_name === package_name) {
       classes.push(value);
     }
@@ -105,6 +105,9 @@ export function OrmClass(config: OrmObjectConfig) {
         }
       }
     });
+    if (index_fields.length > 0 && config.token_config?.numbered_token) {
+      throw new Error('index_fields cannot be set with numbered_token');
+    }
     if (index_fields.length > 3) {
       throw new Error('index_fields must be less than 3');
     }
@@ -199,6 +202,7 @@ export const OrmTokenClass = (option: OrmObjectConfig & Partial<OrmTokenConfig>)
     royalty_payee: option?.royalty_payee,
     royalty_denominator: option?.royalty_denominator || 0,
     royalty_numerator: option?.royalty_numerator || 0,
+    numbered_token: option?.numbered_token || false,
   };
   return OrmClass({
     token_config,
@@ -261,7 +265,10 @@ export const OrmIndexField = (config?: OrmFieldConfig) => {
   return OrmField(config);
 };
 
-function toTypeStringInMove(typeInTs: string, typeInMove?: OrmFieldCommonMoveType | OrmFieldVectorMoveType): OrmFieldTypeString {
+function toTypeStringInMove(
+  typeInTs: string,
+  typeInMove?: OrmFieldCommonMoveType | OrmFieldVectorMoveType
+): OrmFieldTypeString {
   if (typeInMove) {
     if (typeInMove.startsWith('vector<') && typeInMove.endsWith('>')) {
       if (typeInTs !== 'Array') throw new Error('Type mismatch');
@@ -290,10 +297,6 @@ function toTypeStringInMove(typeInTs: string, typeInMove?: OrmFieldCommonMoveTyp
       case 'bool':
         if (typeInTs !== 'Boolean') throw new Error('Type mismatch');
         return 'bool';
-      case 'u128':
-      case 'u256':
-        if (typeInTs !== 'String') throw new Error('Type mismatch');
-        return typeInMove;
       case 'bytes':
         return 'vector<u8>';
     }
