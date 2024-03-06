@@ -7,6 +7,41 @@ const package_name = 'rng';
 const package_creator = orm.loadAccountFromPrivatekeyFile('../.key/user');
 const package_move_path = path.join(__dirname, '.move/rng');
 
+@OrmTokenClass({
+  package_name,
+  package_creator,
+  collection_name: 'SuperV Pet Ticket',
+  collection_uri:
+    'https://e7.pngegg.com/pngimages/841/89/png-clipart-ticket-admit-one-cinema-ticket-miscellaneous-text.png',
+  collection_description: 'collection description',
+  token_use_property_map: true,
+  royalty_present: true,
+  royalty_denominator: 100,
+  royalty_numerator: 5,
+})
+export class PetTicket {
+  @OrmIndexField({ immutable: true, constant: 'Pet Ticket' })
+  name!: string;
+
+  // Issue PetTicket token with creator's address + :: + collection name + :: + token name for each NFT holder
+  // Issue PetTicket token with email for social media campaign
+  @OrmIndexField({ immutable: true, type: 'string' })
+  origin!: string;
+
+  @OrmField({
+    constant:
+      'https://e7.pngegg.com/pngimages/841/89/png-clipart-ticket-admit-one-cinema-ticket-miscellaneous-text.png',
+  })
+  uri!: string;
+
+  @OrmField({ constant: 'Pet Ticket description' })
+  description!: string;
+
+  // Aptos Monkeys #3313
+  @OrmField({ token_property: true })
+  derived_from!: string;
+}
+
 @OrmClass({
   package_name,
   package_creator,
@@ -28,13 +63,13 @@ export class GachaItems {
   @OrmField({ type: 'u64', timestamp: true })
   updated_at: Date;
 
-  @OrmField({ type: 'vector<string::String>'})
+  @OrmField({ type: 'vector<string::String>' })
   property_keys!: string[];
 
-  @OrmField({ type: 'vector<string::String>'})
+  @OrmField({ type: 'vector<string::String>' })
   property_types!: string[];
 
-  @OrmField({ type: 'vector<vector<u8>>'})
+  @OrmField({ type: 'vector<vector<u8>>' })
   property_values!: any[];
 
   constructor(fields?: Partial<GachaItems>) {
@@ -46,12 +81,12 @@ export class GachaItems {
   }
 }
 
-
 @OrmTokenClass({
   package_name,
   package_creator,
   collection_name: 'AptoORM Pet',
-  collection_uri: 'https://e7.pngegg.com/pngimages/787/426/png-clipart-recycling-symbol-polyethylene-terephthalate-pet-bottle-recycling-recycling-codes-symbol-miscellaneous-angle.png',
+  collection_uri:
+    'https://e7.pngegg.com/pngimages/787/426/png-clipart-recycling-symbol-polyethylene-terephthalate-pet-bottle-recycling-recycling-codes-symbol-miscellaneous-angle.png',
   collection_description: 'Pet token for AptoORM users',
   token_use_property_map: true,
   royalty_present: true,
@@ -76,6 +111,9 @@ export class Pet {
 
   @OrmField({ token_property: true, type: 'address' })
   type!: string;
+
+  @OrmField({ type: 'u64', timestamp: true })
+  updated_at: Date;
 }
 
 describe('AptoORM Object', () => {
@@ -96,7 +134,7 @@ describe('AptoORM Object', () => {
       package_creator: package_creator,
       package_name,
       package_move_path,
-      ormobjs: [GachaItems, Pet],
+      ormobjs: [PetTicket, GachaItems, Pet],
       local_apto_orm_package: path.join(__dirname, '../../../move/apto_orm'),
     };
     orm.generatePackage(package_config);

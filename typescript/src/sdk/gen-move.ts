@@ -302,17 +302,23 @@ export const updateObjectFunction = (class_data: OrmClassMetadata) => {
   code.push(indent(`fun update_object<T: key>(`));
   code.push(print(`user: &signer,`));
   code.push(print(`object: Object<T>,`));
-  let need_acquires = false;
   class_data.fields.forEach((field) => {
     if (field.index) return;
     if (field.writable && !field.immutable) {
       code.push(print(`${field.name}: ${field.type},`));
       if (field.token_field) return;
       if (field.token_property) return;
-      need_acquires = true;
     }
   });
-  if (need_acquires) {
+  let property_num = 0;
+  let borrow_num = 0;
+  class_data.user_fields.forEach((field) => {
+    if (!field.index && !field.token_field && !field.token_property) {
+      borrow_num++;
+    }
+    if (field.writable && field.token_property) property_num++;
+  });
+  if (borrow_num > 0) {
     code.push(unindent_then_indent(`) acquires ${class_data.name} {`));
   } else {
     code.push(unindent_then_indent(`) {`));
@@ -324,12 +330,6 @@ export const updateObjectFunction = (class_data: OrmClassMetadata) => {
   code.push(print(`error::invalid_argument(${class_data.error_code.get('not_valid_object')}),`));
   code.push(unindent(`);`));
 
-  let property_num = 0;
-  let borrow_num = 0;
-  class_data.user_fields.forEach((field) => {
-    if (!field.index && !field.token_field && !field.token_property) borrow_num++;
-    if (field.writable && field.token_property) property_num++;
-  });
   code.push(print(`let ${property_num > 0 ? '' : '_'}object_signer = orm_object::load_signer(user, object);`));
   class_data.user_fields.forEach((field) => {
     if (!field.writable) return;
@@ -418,15 +418,15 @@ export const updateFunction = (class_data: OrmClassMetadata) => {
   code.push(indent(`entry fun update(`));
   code.push(print(`user: &signer,`));
   code.push(print(`object: address,`));
-  let need_acquires = false;
   class_data.fields.forEach((field) => {
     if (field.index) return;
     if (field.writable && !field.immutable) {
       code.push(print(`${field.name}: ${field.type},`));
-      if (field.token_field) return;
-      if (field.token_property) return;
-      need_acquires = true;
     }
+  });
+  let need_acquires = false;
+  class_data.user_fields.forEach((field) => {
+    if (!field.index && !field.token_field && !field.token_property) need_acquires = true;
   });
   if (need_acquires) {
     code.push(unindent_then_indent(`) acquires ${class_data.name} {`));
