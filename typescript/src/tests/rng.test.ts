@@ -87,6 +87,7 @@ export class GachaItems {
   collection_uri:
     'https://e7.pngegg.com/pngimages/787/426/png-clipart-recycling-symbol-polyethylene-terephthalate-pet-bottle-recycling-recycling-codes-symbol-miscellaneous-angle.png',
   collection_description: '[FIXME] Pet token for AptoORM users',
+  numbered_token: true,
   token_use_property_map: true,
   royalty_present: true,
   royalty_payee: package_creator.accountAddress,
