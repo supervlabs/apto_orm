@@ -513,6 +513,18 @@ export const getFunction = (class_data: OrmClassMetadata) => {
   return code;
 };
 
+export const existsAtFunction = (class_data: OrmClassMetadata) => {
+  // public fun exists_at(addr: address): bool {
+  //   exists<Royalty>(addr)
+  // }
+  const code: string[] = [];
+  code.push(print(`#[view]`));
+  code.push(indent(`public fun exists_at(object: address): bool {`));
+  code.push(print(`exists<${class_data.name}>(object)`));
+  code.push(unindent(`}`));
+  return code;
+};
+
 export const moduleEnd = () => {
   return unindent(`}`);
 };
@@ -570,6 +582,10 @@ export function generateMove(package_path: string, package_name: string, class_d
   });
   contents.push('');
   getFunction(class_data).forEach((line) => {
+    contents.push(line);
+  });
+  contents.push('');
+  existsAtFunction(class_data).forEach((line) => {
     contents.push(line);
   });
   contents.push(moduleEnd());
