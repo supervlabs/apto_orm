@@ -308,6 +308,7 @@ export const updateObjectFunction = (class_data: OrmClassMetadata) => {
     if (field.writable && !field.immutable) {
       code.push(print(`${field.name}: ${field.type},`));
       if (field.token_field) return;
+      if (field.token_property) return;
       need_acquires = true;
     }
   });
@@ -423,6 +424,7 @@ export const updateFunction = (class_data: OrmClassMetadata) => {
     if (field.writable && !field.immutable) {
       code.push(print(`${field.name}: ${field.type},`));
       if (field.token_field) return;
+      if (field.token_property) return;
       need_acquires = true;
     }
   });
@@ -455,8 +457,11 @@ export const getFunction = (class_data: OrmClassMetadata) => {
   const code: string[] = [];
   code.push(print(`#[view]`));
   let acquires = '';
-  if (class_data.user_fields.length > 0) {
-    acquires = `acquires ${class_data.name}`;
+  for (const field of class_data.user_fields) {
+    if (!field.token_property) {
+      acquires = `acquires ${class_data.name}`;
+      break;
+    }
   }
   let o_num = 0;
   let borrow_num = 0;

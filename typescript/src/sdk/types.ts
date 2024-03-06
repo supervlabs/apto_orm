@@ -50,7 +50,9 @@ export type OrmFieldVectorMoveType =
   | 'vector<u256>'
   | 'vector<bool>'
   | 'vector<string::String>'
-  | 'vector<string>';
+  | 'vector<string>'
+  | 'vector<vector<u8>>'
+  ;
 
 // [FIXME] - add support for EntryFunctionArgumentTypes
 // | EntryFunctionArgumentTypes;
