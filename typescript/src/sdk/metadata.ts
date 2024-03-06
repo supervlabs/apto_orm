@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { AccountAddress } from '@aptos-labs/ts-sdk';
+import { AccountAddress, Account, AccountAddressInput } from '@aptos-labs/ts-sdk';
 import {
   OrmClassMetadata,
   OrmObjectConfig,
@@ -10,8 +10,9 @@ import {
   OrmFieldCommonMoveType,
   OrmFieldTypeString,
   OrmFieldVectorMoveType,
+  NamedAddresses,
 } from './types';
-import { camelToSnake, loadAddresses, toAddress } from './utilities';
+import { camelToSnake, loadAddresses, toAddress, getPackageAddress } from './utilities';
 
 const ormObjectKey = Symbol('orm:object');
 const ormObjectFieldsKey = Symbol('orm:object:fields');
@@ -35,6 +36,125 @@ export function getOrmClasses(package_name: string) {
 
 export function getOrmPackageCreator(package_name: string) {
   return ormPackageCreators.get(package_name);
+}
+
+export interface OrmStructConfig {
+  /** The creator address of the object and package */
+  package_creator: Account | AccountAddressInput;
+  /** The package name where the objects belongs to */
+  package_name: string;
+  package_address?: AccountAddressInput; // address of the package
+  module_name?: string; // name of the module to be created
+  named_addresses?: NamedAddresses;
+}
+
+export class OrmStructMetadata implements OrmStructConfig {
+  public package_creator: AccountAddress;
+  public package_name: string;
+  public package_address: AccountAddress;
+  public named_addresses?: NamedAddresses;
+  public module_name: string;
+  public store_ability: boolean;
+  public fields: OrmFieldData[];
+  public use_modules: string[];
+  public error_code: Map<string, string>;
+
+  static from(config: OrmStructConfig) {
+    if (!config) {
+      throw new Error('config is required');
+    }
+    if (!config || !config.package_creator) {
+      throw new Error('config.package_creator is required');
+    }
+    if (!config || !config.package_name) {
+      throw new Error('config.package_name is required');
+    }
+
+    return function <T extends { new (...args: any[]): {} }>(target: T) {
+      const meta = new OrmStructMetadata();
+      if (config.package_creator instanceof Account) {
+        meta.package_creator = config.package_creator.accountAddress;
+      } else {
+        meta.package_creator = AccountAddress.from(config.package_creator);
+      }
+      meta.package_name = config.package_name;
+      if (config.package_address) {
+        meta.package_address = AccountAddress.from(config.package_address);
+      } else {
+        meta.package_address = getPackageAddress(meta.package_creator, meta.package_name);
+      }
+      meta.module_name = config.module_name || camelToSnake(target.name);
+
+      const named_addresses = {
+        ...loadAddresses(config),
+        ...config.named_addresses,
+      };
+      const fields: OrmFieldData[] = Reflect.getOwnMetadata(ormObjectFieldsKey, target.prototype) || [];
+      const use_modules: string[] = [
+        'std::signer',
+        'std::error',
+        'aptos_framework::object::{Self, Object}',
+        'apto_orm::orm_creator',
+        'apto_orm::orm_class',
+        'apto_orm::orm_object',
+        'apto_orm::orm_module',
+        'std::option::{Self, Option}',
+      ];
+      fields.forEach((field) => {
+        switch (field.property_type) {
+          case 'Date':
+            if (!use_modules.includes('aptos_framework::timestamp')) {
+              use_modules.push('aptos_framework::timestamp');
+            }
+            break;
+          case 'String':
+            if (!use_modules.includes('std::string')) {
+              use_modules.push('std::string');
+            }
+            break;
+        }
+        if (field.token_property) {
+          if (!use_modules.includes('std::bcs')) {
+            use_modules.push('std::bcs');
+          }
+          if (!use_modules.includes('aptos_token_objects::property_map')) {
+            use_modules.push('aptos_token_objects::property_map');
+          }
+        }
+        if (field.timestamp) {
+          if (!use_modules.includes('aptos_framework::timestamp')) {
+            use_modules.push('aptos_framework::timestamp');
+          }
+        }
+      });
+
+      const user_fields: OrmFieldData[] = [];
+      user_fields.push(...fields);
+      use_modules.sort();
+      meta.fields = fields;
+      meta.use_modules = use_modules;
+      meta.error_code = new Map<string, string>([
+        ['not_found', `E${target.name.toUpperCase()}_OBJECT_NOT_FOUND`],
+        ['not_valid_object', `ENOT_${target.name.toUpperCase()}_OBJECT`],
+      ]);
+      meta.package_address = named_addresses[config.package_name];
+      meta.named_addresses = named_addresses;
+      Reflect.defineMetadata(Symbol.for('orm:struct'), meta, target);
+      // ormClasses.set(target.name, target);
+      // ormPackageCreators.set(config.package_name, toAddress(config.package_creator));
+      return class extends target {
+        public config = config;
+        constructor(...args: any[]) {
+          super(...args);
+          this.config = config;
+        }
+      };
+    };
+  }
+}
+
+export function OrmStruct(config: OrmStructConfig) {
+  return OrmStructMetadata.from(config);
 }
 
 export function OrmClass(config: OrmObjectConfig) {
@@ -215,6 +335,7 @@ export function OrmField(config?: OrmFieldConfig): PropertyDecorator {
     // let descriptor = Object.getOwnPropertyDescriptor(target, key);
     if (!config) config = {};
     const tsTypeClass = Reflect.getMetadata('design:type', target, key);
+    console.log('tsTypeClass', tsTypeClass.name);
     const typeInMove = toTypeStringInMove(tsTypeClass.name, config.type);
     const field = new OrmFieldData();
     field.name = config.name || camelToSnake(key);
@@ -261,7 +382,10 @@ export const OrmIndexField = (config?: OrmFieldConfig) => {
   return OrmField(config);
 };
 
-function toTypeStringInMove(typeInTs: string, typeInMove?: OrmFieldCommonMoveType | OrmFieldVectorMoveType): OrmFieldTypeString {
+function toTypeStringInMove(
+  typeInTs: string,
+  typeInMove?: OrmFieldCommonMoveType | OrmFieldVectorMoveType
+): OrmFieldTypeString {
   if (typeInMove) {
     if (typeInMove.startsWith('vector<') && typeInMove.endsWith('>')) {
       if (typeInTs !== 'Array') throw new Error('Type mismatch');

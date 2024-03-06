@@ -192,6 +192,7 @@ export function generatePackage(config: OrmPackageConfig) {
   const package_address = getPackageAddress(package_creator, package_name);
   generateToml(package_move_path, package_creator, package_name, package_address, local_apto_orm_package);
   for (const o of ormobjs) {
+    console.log(o);
     const classdata = getOrmClassMetadata(o);
     classdata.named_addresses = named_addresses;
     classdata.package_address = package_address;
