@@ -9,6 +9,7 @@ import {
   ObjectLiteral,
   OrmFieldCommonMoveType,
   OrmFieldTypeString,
+  OrmFieldVectorMoveType,
 } from './types';
 import { camelToSnake, loadAddresses, toAddress } from './utilities';
 
@@ -118,7 +119,8 @@ export function OrmClass(config: OrmObjectConfig) {
     }
     const user_fields: OrmFieldData[] = [];
     if (config?.token_config) {
-      config.token_config.token_use_property_map = token_use_property_map;
+      if (!config.token_config.token_use_property_map)
+        config.token_config.token_use_property_map = token_use_property_map;
       // set collection name
       if (!config.token_config.collection_name) {
         config.token_config.collection_name = target.name;
@@ -259,8 +261,12 @@ export const OrmIndexField = (config?: OrmFieldConfig) => {
   return OrmField(config);
 };
 
-function toTypeStringInMove(typeInTs: string, typeInMove?: OrmFieldCommonMoveType): OrmFieldTypeString {
+function toTypeStringInMove(typeInTs: string, typeInMove?: OrmFieldCommonMoveType | OrmFieldVectorMoveType): OrmFieldTypeString {
   if (typeInMove) {
+    if (typeInMove.startsWith('vector<') && typeInMove.endsWith('>')) {
+      if (typeInTs !== 'Array') throw new Error('Type mismatch');
+      return typeInMove as OrmFieldTypeString;
+    }
     switch (typeInMove) {
       case 'address':
         return 'address';
