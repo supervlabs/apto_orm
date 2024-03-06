@@ -10,17 +10,18 @@ const package_move_path = path.join(__dirname, '.move/rng');
 @OrmTokenClass({
   package_name,
   package_creator,
-  collection_name: 'SuperV Pet Ticket',
+  collection_name: '[FIXME] SuperV Pet Ticket',
   collection_uri:
     'https://e7.pngegg.com/pngimages/841/89/png-clipart-ticket-admit-one-cinema-ticket-miscellaneous-text.png',
-  collection_description: 'collection description',
+  collection_description: '[FIXME] collection description',
   token_use_property_map: true,
   royalty_present: true,
+  royalty_payee: package_creator.accountAddress,
   royalty_denominator: 100,
   royalty_numerator: 5,
 })
 export class PetTicket {
-  @OrmIndexField({ immutable: true, constant: 'Pet Ticket' })
+  @OrmIndexField({ immutable: true, constant: '[FIXME] Pet Ticket' })
   name!: string;
 
   // Issue PetTicket token with creator's address + :: + collection name + :: + token name for each NFT holder
@@ -34,11 +35,10 @@ export class PetTicket {
   })
   uri!: string;
 
-  @OrmField({ constant: 'Pet Ticket description' })
+  @OrmField({ constant: '[FIXME] Pet Ticket description' })
   description!: string;
 
-  // Aptos Monkeys #3313
-  @OrmField({ token_property: true })
+  @OrmField({ token_property: true, type: 'address' })
   derived_from!: string;
 }
 
@@ -83,12 +83,13 @@ export class GachaItems {
 @OrmTokenClass({
   package_name,
   package_creator,
-  collection_name: 'AptoORM Pet',
+  collection_name: '[FIXME] AptoORM Pet',
   collection_uri:
     'https://e7.pngegg.com/pngimages/787/426/png-clipart-recycling-symbol-polyethylene-terephthalate-pet-bottle-recycling-recycling-codes-symbol-miscellaneous-angle.png',
-  collection_description: 'Pet token for AptoORM users',
+  collection_description: '[FIXME] Pet token for AptoORM users',
   token_use_property_map: true,
   royalty_present: true,
+  royalty_payee: package_creator.accountAddress,
   royalty_denominator: 100,
   royalty_numerator: 5,
 })
@@ -99,7 +100,7 @@ export class Pet {
   @OrmField({ constant: 'https://raw.githubusercontent.com/neoul/apto_orm/main/resource.png' })
   uri!: string;
 
-  @OrmField({ constant: 'The description of the token' })
+  @OrmField({ constant: '[FIXME] The description of the token' })
   description!: string;
 
   @OrmField({ token_property: true })
