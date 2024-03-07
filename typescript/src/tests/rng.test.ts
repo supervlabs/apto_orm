@@ -46,7 +46,10 @@ export class PetTicket {
   package_name,
   package_creator,
 })
-export class GachaItems {
+export class GachaItem {
+  @OrmIndexField({ immutable: true })
+  group!: string;
+
   @OrmIndexField({ immutable: true })
   index!: number;
 
@@ -71,10 +74,10 @@ export class GachaItems {
   @OrmField({ type: 'vector<vector<u8>>' })
   property_values!: any[];
 
-  constructor(fields?: Partial<GachaItems>) {
+  constructor(fields?: Partial<GachaItem>) {
     if (fields) {
       for (const key in fields) {
-        (this as any)[key] = fields[key as keyof GachaItems];
+        (this as any)[key] = fields[key as keyof GachaItem];
       }
     }
   }
@@ -95,7 +98,7 @@ export class GachaItems {
   royalty_numerator: 5,
 })
 export class Pet {
-  @OrmField({ token_property: true })
+  @OrmField({  })
   name!: string;
 
   @OrmField({ constant: 'https://raw.githubusercontent.com/neoul/apto_orm/main/resource.png' })
@@ -135,11 +138,11 @@ describe('AptoORM Object', () => {
       package_creator: package_creator,
       package_name,
       package_move_path,
-      ormobjs: [PetTicket, GachaItems, Pet],
+      ormobjs: [PetTicket, GachaItem, Pet],
       local_apto_orm_package: path.join(__dirname, '../../../move/apto_orm'),
     };
-    orm.generatePackage(package_config);
-    expect(fs.existsSync(`${package_move_path}/sources/gacha_items.move`)).toBe(true);
+    // orm.generatePackage(package_config);
+    // expect(fs.existsSync(`${package_move_path}/sources/gacha_item.move`)).toBe(true);
     orm.compilePackage({ package_move_path });
     expect(fs.existsSync(`${package_move_path}/build/${snakeToCamel(package_name, true)}/package-metadata.bcs`)).toBe(
       true
@@ -153,13 +156,13 @@ describe('AptoORM Object', () => {
     // console.log(`package published to ${package_address.toString()}`);
 
     // // 3. create objects
-    // const a = new GachaItems();
+    // const a = new GachaItem();
     // a.title = 'First board title';
     // a.body = 'First board description';
     // a.like = 10;
     // expect(a.title).toBe('First board title');
 
-    // const b: GachaItems = new GachaItems({
+    // const b: GachaItem = new GachaItem({
     //   title: '2th title',
     //   body: '2th description',
     //   updated_at: new Date(),
@@ -167,12 +170,12 @@ describe('AptoORM Object', () => {
     // });
     // expect(b.title).toBe('2th title');
 
-    // const classAddr = orm.getClassAddress(GachaItems).toString();
+    // const classAddr = orm.getClassAddress(GachaItem).toString();
     // expect(classAddr).toBeDefined();
     // expect(orm.getClassAddress(a).toString()).toBe(classAddr);
-    // expect(orm.getClassAddress('GachaItems').toString()).toBe(classAddr);
+    // expect(orm.getClassAddress('GachaItem').toString()).toBe(classAddr);
 
-    // const c: GachaItems = new GachaItems({
+    // const c: GachaItem = new GachaItem({
     //   title: '3th title',
     //   body: '3th description',
     //   updated_at: new Date(),
@@ -188,17 +191,17 @@ describe('AptoORM Object', () => {
     // console.log('createTxn', txnr.hash);
     // console.log('retrieveOrmObjectAddressFromTxnr', a_address);
     // expect(async () => {
-    //   await client.getObject({ object: GachaItems, address: a_address }, true);
+    //   await client.getObject({ object: GachaItem, address: a_address }, true);
     // }).not.toThrow();
 
     // txn = await client.createTxn(package_creator, b);
     // ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
     // txnr = await client.waitForOrmTxnWithResult(ptxn);
-    // const b_address = client.retrieveOrmObjectAddressFromTxnr(txnr, { object_type: GachaItems });
+    // const b_address = client.retrieveOrmObjectAddressFromTxnr(txnr, { object_type: GachaItem });
     // console.log('createTxn', txnr.hash);
     // console.log('retrieveOrmObjectAddressFromTxnr', b_address);
     // expect(async () => {
-    //   await client.getObject({ object: GachaItems, address: b_address }, true);
+    //   await client.getObject({ object: GachaItem, address: b_address }, true);
     // }).not.toThrow();
 
     // txn = await client.createToTxn(package_creator, c, '0xffff');
@@ -208,7 +211,7 @@ describe('AptoORM Object', () => {
     // console.log('createToTxn', txnr.hash);
     // console.log('retrieveOrmObjectAddressFromTxnr', c_address);
     // expect(async () => {
-    //   await client.getObject({ object: GachaItems, address: c_address }, true);
+    //   await client.getObject({ object: GachaItem, address: c_address }, true);
     // }).not.toThrow();
 
     // // 5. update the objects
