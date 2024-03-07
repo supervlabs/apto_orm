@@ -288,7 +288,9 @@ function toTypeStringInMove(
         return typeInMove;
       case 'u64':
         if (typeInTs === 'Date') return typeInMove;
-        if (typeInTs !== 'Bigint' && typeInTs !== 'Number') throw new Error('Type mismatch');
+        if (typeInTs !== 'BigInt' && typeInTs !== 'Number') {
+          throw new Error('Type mismatch');
+        }
         return typeInMove;
       case 'u128':
       case 'u256':

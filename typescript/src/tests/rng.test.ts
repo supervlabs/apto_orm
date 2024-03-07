@@ -21,13 +21,13 @@ const package_move_path = path.join(__dirname, '.move/rng');
   royalty_numerator: 5,
 })
 export class PetTicket {
-  @OrmIndexField({ immutable: true, constant: '[FIXME] Pet Ticket' })
-  name!: string;
-
   // Issue PetTicket token with creator's address + :: + collection name + :: + token name for each NFT holder
   // Issue PetTicket token with email for social media campaign
   @OrmIndexField({ immutable: true, type: 'string' })
   origin!: string;
+
+  @OrmField({ immutable: true })
+  name!: string;
 
   @OrmField({
     constant:
@@ -38,8 +38,8 @@ export class PetTicket {
   @OrmField({ constant: '[FIXME] Pet Ticket description' })
   description!: string;
 
-  @OrmField({ token_property: true })
-  origin_token!: string;
+  @OrmField({ token_property: true, type: 'address' })
+  derived_from!: string;
 }
 
 @OrmClass({
@@ -110,11 +110,11 @@ export class Pet {
   @OrmField({ token_property: true, type: 'address' })
   pet_ticket!: string;
 
-  @OrmField({ token_property: true, type: 'address' })
-  pet_type!: string;
-
   @OrmField({ type: 'u64', timestamp: true })
   updated_at: Date;
+
+  @OrmField({ type: 'u64' })
+  salt: bigint;
 }
 
 describe('AptoORM Object', () => {
@@ -125,10 +125,10 @@ describe('AptoORM Object', () => {
   it('Test to define, generate, compile, publish and create AptoORM Object', async () => {
     const client = new orm.OrmClient('local');
 
-    // 1. create an package account
-    let txn = await orm.createPackageTxn(client, package_creator, package_name);
-    let txnr = await client.signSubmitAndWaitOrmTxnWithResult([package_creator], txn);
-    console.log('createPackageTxn', txnr.hash);
+    // // 1. create an package account
+    // let txn = await orm.createPackageTxn(client, package_creator, package_name);
+    // let txnr = await client.signSubmitAndWaitOrmTxnWithResult([package_creator], txn);
+    // console.log('createPackageTxn', txnr.hash);
 
     // 2. create an package
     const package_config: orm.OrmPackageConfig = {
