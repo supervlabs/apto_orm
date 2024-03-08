@@ -26,7 +26,7 @@ export function generateToml(
   const apto_orm_address = getOrmAddress() || '_';
   const apto_orm_local_package = local_apto_orm_package
     ? `{ local = "${local_apto_orm_package}" }`
-    : `{ git = "https://github.com/neoul/apto_orm.git", subdir = "move/apto_orm", rev = "main" }`;
+    : `{ git = "https://github.com/supervlabs/apto_orm", subdir = "move/apto_orm", rev = "main" }`;
   const package_creator_str = package_creator ? `package_creator = "${toAddress(package_creator)}"` : ``;
 
   const movetoml = `[package]
