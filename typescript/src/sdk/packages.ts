@@ -210,10 +210,13 @@ export function generatePackage(config: OrmPackageConfig) {
 export async function publishPackageTxns(
   client: OrmClient,
   user: Account,
-  config: Pick<OrmPackageConfig, 'package_creator' | 'package_name' | 'package_move_path' | 'named_addresses'>,
+  config: Pick<
+    OrmPackageConfig,
+    'package_creator' | 'package_name' | 'package_move_path' | 'named_addresses' | 'modules_publish_order'
+  >,
   options?: OrmTxnOptions
 ) {
-  const { package_creator, package_name, package_move_path, named_addresses } = config;
+  const { package_creator, package_name, package_move_path, named_addresses, modules_publish_order } = config;
   if (!package_creator) {
     throw new Error('package_creator is required');
   }
@@ -240,6 +243,13 @@ export async function publishPackageTxns(
   const files = retrieveFilesInDir(path.join(package_move_path, 'build', packageName, 'bytecode_modules'), [
     'dependencies',
   ]);
+  if (modules_publish_order) {
+    for (const module of modules_publish_order) {
+      const file_index = files.findIndex((f) => f.includes(`${module}.mv`));
+      const file = files.splice(file_index, 1)[0];
+      files.push(file);
+    }
+  }
   for (const file of files) {
     const moduleData = fs.readFileSync(file);
     const moduleBytes = Hex.fromString(moduleData.toString('hex')).toUint8Array();

@@ -225,6 +225,7 @@ export type OrmPackageConfig = {
   ormobjs: any[];
   named_addresses?: NamedAddresses;
   local_apto_orm_package?: string; // path to local package
+  modules_publish_order?: string[]; // modules publish order
 };
 
 /**
