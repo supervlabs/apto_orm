@@ -243,12 +243,10 @@ export async function publishPackageTxns(
   const files = retrieveFilesInDir(path.join(package_move_path, 'build', packageName, 'bytecode_modules'), [
     'dependencies',
   ]);
-  if (modules_publish_order) {
-    for (const module of modules_publish_order) {
-      const file_index = files.findIndex((f) => f.includes(`${module}.mv`));
-      const file = files.splice(file_index, 1)[0];
-      files.push(file);
-    }
+  for (const module of modules_publish_order || []) {
+    const file_index = files.findIndex((f) => f.includes(`${module}.mv`));
+    const file = files.splice(file_index, 1)[0];
+    files.push(file);
   }
   for (const file of files) {
     const moduleData = fs.readFileSync(file);
