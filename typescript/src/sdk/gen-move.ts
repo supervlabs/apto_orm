@@ -326,7 +326,11 @@ export const updateObjectFunction = (class_data: OrmClassMetadata) => {
     if (!field.index && !field.token_field && !field.token_property) {
       borrow_num++;
     }
-    if (field.writable && field.token_property) property_num++;
+    if (field.writable && field.token_property) {
+      if (!field.immutable) {
+        property_num++;
+      }
+    }
   });
   if (borrow_num > 0) {
     code.push(unindent_then_indent(`) acquires ${class_data.name} {`));
@@ -344,6 +348,7 @@ export const updateObjectFunction = (class_data: OrmClassMetadata) => {
   class_data.user_fields.forEach((field) => {
     if (!field.writable) return;
     if (!field.token_property) return;
+    if (field.immutable) return;
     const field_type = field.type === 'string::String' ? '0x1::string::String' : field.type;
     code.push(indent(`orm_object::add_typed_property<T, ${field_type}>(`));
     code.push(print(`&object_signer, object, string::utf8(b"${field.name}"), ${field.name},`));
@@ -355,6 +360,7 @@ export const updateObjectFunction = (class_data: OrmClassMetadata) => {
   class_data.user_fields.forEach((field) => {
     if (field.index) return;
     if (field.token_field || field.token_property) return;
+    if (field.immutable) return;
     if (field.timestamp) {
       code.push(print(`user_data.${field.name} = timestamp::now_seconds();`));
     } else {
