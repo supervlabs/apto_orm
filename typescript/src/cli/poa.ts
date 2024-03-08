@@ -14,14 +14,15 @@ poa
   .requiredOption('-d, --designator <key_file>', 'The private key file of the package owner')
   .requiredOption('-l, --delegator <key_file>', 'The private key file of the delegator')
   .option('-e, --expiration <day_offset>', 'The expiration date of the PoA in days from now', '0')
+  .option('-a, --amount <amount>', 'The amount of the PoA', '0')
   .action(async function () {
     const client = loadOrmClient(this);
-    const { designator, delegator, expiration } = this.opts();
+    const { designator, delegator, expiration, amount } = this.opts();
     const package_owner_account = loadAccountFromPrivatekeyFile(designator);
     const poa_account = loadAccountFromPrivatekeyFile(delegator);
     const txn = await orm.registerPoaTxn(client, package_owner_account, poa_account, {
       expiration_date: expiration,
-      amount: 0,
+      amount: amount ? Number(amount) : 0,
     });
     const ptxn = await client.signAndsubmitOrmTxn([package_owner_account, poa_account], txn);
     const txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
