@@ -368,11 +368,6 @@ module apto_orm::orm_object {
             option::is_some(&orm_object.transfer_ref),
             error::permission_denied(EOBJECT_NOT_TRANSFERABLE),
         );
-        if (!object::is_object(to)) {
-            if (!account::exists_at(to) && to != @0x0 && to != @0x1 && to != @0x3) {
-                aptos_account::create_account(to);
-            };
-        };
         let transfer_ref = option::borrow(&orm_object.transfer_ref);
         let linear_ref = object::generate_linear_transfer_ref(transfer_ref);
         object::transfer_with_ref(linear_ref, to);
