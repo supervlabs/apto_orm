@@ -263,6 +263,44 @@ program
   });
 
 program
+  .command('patch')
+  .description('Patch the target module')
+  .argument('<package_path>', 'The AptoORM package path and name to publish')
+  .requiredOption('-k, --key <key_file>', 'The private key file of the package owner')
+  .requiredOption('-c, --class <CLASS_NAME>', 'The class to be created e.g. -c BaseObject')
+  .action(async function () {
+    const client = loadOrmClient(program);
+    const { key, data, to } = this.opts();
+    const class_name = this.opts()?.class;
+    let package_path: string = this.args[0];
+    const [_package_path, package_name] = checkPackagePath(package_path);
+    package_path = _package_path;
+    if (!key) {
+      throw new Error(`key file not specified`);
+    }
+    const package_owner: Account = loadAccountFromPrivatekeyFile(key);
+    const ormclasses = await loadPackageClasses(package_name, package_path, [class_name]);
+    if (ormclasses.length === 0) {
+      throw new Error(`class '${class_name}' not found`);
+    }
+    if (ormclasses.length > 1) {
+      throw new Error(`class '${class_name}' is ambiguous`);
+    }
+    const target_class = ormclasses[0];
+    if (!target_class) {
+      throw new Error(`class '${class_name}' not found`);
+    }
+    const txn = await client.generateOrmTxn([package_owner], {
+      function: `${client.ormAddress}::${package_name}::patch_module`,
+      typeArguments: [],
+      functionArguments: [],
+    });
+    const ptxn = await client.signAndsubmitOrmTxn([package_owner], txn);
+    const txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
+    console.log(`txn: ${txnr.hash}`);
+  });
+
+program
   .command('create')
   .description('Create the target class object')
   .argument('<package_path>', 'The AptoORM package path and name')
