@@ -13,7 +13,7 @@ module apto_orm::orm_class {
     // use aptos_token_objects::token;
     use aptos_token_objects::royalty;
 
-    use apto_orm::orm_creator::OrmCreator;
+    use apto_orm::orm_creator::{Self, OrmCreator};
 
     friend apto_orm::orm_object;
 
@@ -21,6 +21,7 @@ module apto_orm::orm_class {
     const EOPERATION_NOT_AUTHORIZED: u64 = 2;
     const EORM_CLASS_NOT_FOUND: u64 = 3;
     const EORM_COLLECTION_NOT_FOUND: u64 = 4;
+    const EORM_CLASS_SIGNER_NOT_FOUND: u64 = 5;
 
     struct OrmEvent has drop, store {
         object: address,
@@ -316,6 +317,20 @@ module apto_orm::orm_class {
             collection_royalty_numerator,
         );
         class_address
+    }
+
+    public fun load_class_signer<T: key>(
+        creator_or_owner: &signer, class: Object<T>
+    ): signer acquires OrmClass, OrmClassSigner{
+        let class_address = object::object_address(&class);
+        assert!(
+            exists<OrmClassSigner>(class_address),
+            error::permission_denied(EORM_CLASS_SIGNER_NOT_FOUND),
+        );
+        let class_data = borrow_class(&class);
+        orm_creator::load_creator(creator_or_owner, class_data.creator);
+        let ocs = borrow_global<OrmClassSigner>(class_address);
+        object::generate_signer_for_extending(&ocs.extend_ref)
     }
 
     public entry fun set_uri<T: key>(
