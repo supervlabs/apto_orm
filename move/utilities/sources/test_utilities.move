@@ -20,10 +20,14 @@ module apto_orm::test_utilities {
     public fun init_network(aptos: &signer, now: u64) {
         use aptos_framework::timestamp;
         use aptos_framework::chain_id;
-        use std::features;
+        // use std::features;
 
-        // enable auids_enabled, APTOS_UNIQUE_IDENTIFIERS
-        features::change_feature_flags(aptos, vector[23], vector[]);
+        // features::change_feature_flags(aptos, vector[
+        //     features::get_aggregator_v2_api_feature(),
+        // ], vector[]);
+
+        // enable auids_enabled, APTOS_UNIQUE_IDENTIFIERS(23), AGGREGATOR_V2_API(30), CONCURRENT_TOKEN_V2(37)
+        // features::change_feature_flags(aptos, vector[23, 30, 37], vector[]);
 
         assert!(signer::address_of(aptos) == @0x1, 1);
         let (burn_cap, mint_cap) = aptos_coin::initialize_for_test(aptos);

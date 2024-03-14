@@ -120,7 +120,7 @@ compile_move() {
 test_move() {
    _check_move_package "$1"
    cd "move/$1"
-   aptos move test --bytecode-version 6 --named-addresses apto_orm=0x1e51 || exit 1
+   aptos move test --bytecode-version 6 --named-addresses apto_orm=0x1e51 --ignore-compile-warnings || exit 1
    cd - >> /dev/null
 }
 

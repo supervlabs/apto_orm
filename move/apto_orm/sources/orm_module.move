@@ -1,4 +1,5 @@
 module apto_orm::orm_module {
+    use std::signer;
     use std::error;
     use aptos_framework::object::{Self, Object};
     use apto_orm::orm_creator::{OrmCreator};
@@ -15,11 +16,18 @@ module apto_orm::orm_module {
 
     public fun set<T: key>(
         publisher: &signer, signer: address, class: address,
-    ) {
-        move_to(publisher, OrmModule<T> {
-            signer: object::address_to_object<OrmCreator>(signer),
-            class: object::address_to_object<OrmClass>(class),
-        });
+    ) acquires OrmModule {
+        let publisher_address = signer::address_of(publisher);
+        if (!exists<OrmModule<T>>(publisher_address)) {
+            move_to(publisher, OrmModule<T> {
+                signer: object::address_to_object<OrmCreator>(signer),
+                class: object::address_to_object<OrmClass>(class),
+            });
+        } else {
+            let orm_module = borrow_global_mut<OrmModule<T>>(publisher_address);
+            orm_module.signer = object::address_to_object<OrmCreator>(signer);
+            orm_module.class = object::address_to_object<OrmClass>(class);
+        }
     }
 
     #[view]

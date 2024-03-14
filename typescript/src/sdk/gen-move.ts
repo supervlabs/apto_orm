@@ -93,9 +93,9 @@ export const initModule = (class_data: OrmClassMetadata) => {
   const token_config = class_data.token_config;
   code.push(indent(`fun init_module(package: &signer) {`));
   if (token_config) {
-    code.push(indent(`let class_signer = orm_class::create_class_as_collection<${class_data.name}>(`));
+    code.push(indent(`let class_address = orm_class::update_class_as_collection<${class_data.name}>(`));
   } else {
-    code.push(indent(`let class_signer = orm_class::create_class_as_object<${class_data.name}>(`));
+    code.push(indent(`let class_address = orm_class::update_class_as_object<${class_data.name}>(`));
   }
   code.push(print(`package,`));
   if (token_config) {
@@ -135,8 +135,18 @@ export const initModule = (class_data: OrmClassMetadata) => {
   code.push(indent(`orm_module::set<${class_data.name}>(`));
   code.push(print(`package,`));
   code.push(print(`signer::address_of(package),`));
-  code.push(print(`signer::address_of(&class_signer),`));
+  code.push(print(`class_address,`));
   code.push(unindent(`);`));
+  code.push(unindent(`}`));
+  return code;
+};
+
+export const patchModule = (package_name: string, class_data: OrmClassMetadata) => {
+  const code: string[] = [];
+  code.push(indent(`entry fun patch_module(user: &signer) {`));
+  code.push(print(`let (orm_creator, _) = orm_module::get<${class_data.name}>(@${package_name});`));
+  code.push(print(`let package = orm_creator::load_creator(user, orm_creator);`));
+  code.push(print(`init_module(&package);`));
   code.push(unindent(`}`));
   return code;
 };
@@ -556,6 +566,10 @@ export function generateMove(package_path: string, package_name: string, class_d
   });
   contents.push('');
   initModule(class_data).forEach((line) => {
+    contents.push(line);
+  });
+  contents.push('');
+  patchModule(package_name, class_data).forEach((line) => {
     contents.push(line);
   });
   contents.push('');

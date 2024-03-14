@@ -128,10 +128,10 @@ describe('AptoORM Object', () => {
   it('Test to define, generate, compile, publish and create AptoORM Object', async () => {
     const client = new orm.OrmClient('local');
 
-    // // 1. create an package account
-    // let txn = await orm.createPackageTxn(client, package_creator, package_name);
-    // let txnr = await client.signSubmitAndWaitOrmTxnWithResult([package_creator], txn);
-    // console.log('createPackageTxn', txnr.hash);
+    // 1. create an package account
+    let txn = await orm.createPackageTxn(client, package_creator, package_name);
+    let txnr = await client.signSubmitAndWaitOrmTxnWithResult([package_creator], txn);
+    console.log('createPackageTxn', txnr.hash);
 
     // 2. create an package
     const package_config: orm.OrmPackageConfig = {
@@ -141,8 +141,8 @@ describe('AptoORM Object', () => {
       ormobjs: [PetTicket, GachaItem, Pet],
       local_apto_orm_package: path.join(__dirname, '../../../move/apto_orm'),
     };
-    // orm.generatePackage(package_config);
-    // expect(fs.existsSync(`${package_move_path}/sources/gacha_item.move`)).toBe(true);
+    orm.generatePackage(package_config);
+    expect(fs.existsSync(`${package_move_path}/sources/gacha_item.move`)).toBe(true);
     orm.compilePackage({ package_move_path });
     expect(fs.existsSync(`${package_move_path}/build/${snakeToCamel(package_name, true)}/package-metadata.bcs`)).toBe(
       true

@@ -7,7 +7,7 @@ module apto_orm::orm_class {
     use aptos_framework::event;
     use aptos_framework::object::{Self, Object};
     use aptos_std::type_info;
-    
+
     use aptos_token_objects::collection;
     // use aptos_token_objects::property_map;
     // use aptos_token_objects::token;
@@ -43,6 +43,11 @@ module apto_orm::orm_class {
 	    extensible_by_creator: bool,
         extensible_by_owner: bool,
         events: event::EventHandle<OrmEvent>,
+    }
+
+    #[resource_group_member(group = aptos_framework::object::ObjectGroup)]
+    struct OrmClassSigner has key {
+        extend_ref: object::ExtendRef,
     }
 
     #[resource_group_member(group = aptos_framework::object::ObjectGroup)]
@@ -97,6 +102,44 @@ module apto_orm::orm_class {
         borrow_global_mut<OrmTokenClass>(object_address)
     }
 
+    public fun update_class_as_object<UserClass: key>(
+        creator: &signer,
+        name: String,
+        direct_transfer: bool,
+        deletable_by_creator: bool,
+        deletable_by_owner: bool,
+        indirect_transfer_by_creator: bool,
+        indirect_transfer_by_owner: bool,
+        extensible_by_creator: bool,
+        extensible_by_owner: bool,
+    ): address acquires OrmClass {
+        let creator_address = signer::address_of(creator);
+        let class_address = object::create_object_address(&creator_address, *string::bytes(&name));
+        if (exists<OrmClass>(class_address)) {
+            let class = borrow_global_mut<OrmClass>(class_address);
+            class.direct_transfer = direct_transfer;
+            class.deletable_by_creator = deletable_by_creator;
+            class.deletable_by_owner = deletable_by_owner;
+            class.indirect_transfer_by_creator = indirect_transfer_by_creator;
+            class.indirect_transfer_by_owner = indirect_transfer_by_owner;
+            class.extensible_by_creator = extensible_by_creator;
+            class.extensible_by_owner = extensible_by_owner;
+            return class_address
+        };
+        create_class_as_object<UserClass>(
+            creator,
+            name,
+            direct_transfer,
+            deletable_by_creator,
+            deletable_by_owner,
+            indirect_transfer_by_creator,
+            indirect_transfer_by_owner,
+            extensible_by_creator,
+            extensible_by_owner,
+        );
+        class_address
+    }
+
     public fun create_class_as_object<UserClass: key>(
         creator: &signer,
         name: String,
@@ -109,8 +152,6 @@ module apto_orm::orm_class {
         extensible_by_owner: bool,
     ): signer {
         let creator_address = signer::address_of(creator);
-        // let seed = b"orm_class::";
-        // vector::append(&mut seed, *string::bytes(&name));
         let ref = object::create_named_object(creator, *string::bytes(&name));
         let class = OrmClass {
             creator: object::address_to_object<OrmCreator>(creator_address),
@@ -128,6 +169,9 @@ module apto_orm::orm_class {
         };
         let class_signer = object::generate_signer(&ref);
         move_to(&class_signer, class);
+        move_to(&class_signer, OrmClassSigner {
+            extend_ref: object::generate_extend_ref(&ref),
+        });
         class_signer
     }
 
@@ -208,8 +252,70 @@ module apto_orm::orm_class {
         };
         let class_signer = object::generate_signer(&ref);
         move_to(&class_signer, class);
+        move_to(&class_signer, OrmClassSigner {
+            extend_ref: object::generate_extend_ref(&ref),
+        });
         move_to(&class_signer, class_collection);
         class_signer
+    }
+
+    public fun update_class_as_collection<UserClass: key>(
+        creator: &signer,
+        name: String,
+        direct_transfer: bool,
+        deletable_by_creator: bool,
+        deletable_by_owner: bool,
+        indirect_transfer_by_creator: bool,
+        indirect_transfer_by_owner: bool,
+        extensible_by_creator: bool,
+        extensible_by_owner: bool,
+        collection_uri: String,
+        collection_description: String,
+        collection_max_supply: u64,
+        collection_token_use_property_map: bool,
+        collection_royalty_present: bool,
+        collection_royalty_payee: address,
+        collection_royalty_denominator: u64,
+        collection_royalty_numerator: u64,
+    ): address acquires OrmClass, OrmTokenClass {
+        let creator_address = signer::address_of(creator);
+        let class_address = collection::create_collection_address(&creator_address, &name);
+        if (exists<OrmClass>(class_address)) {
+            // update the class
+            let class = borrow_global_mut<OrmClass>(class_address);
+            class.direct_transfer = direct_transfer;
+            class.deletable_by_creator = deletable_by_creator;
+            class.deletable_by_owner = deletable_by_owner;
+            class.indirect_transfer_by_creator = indirect_transfer_by_creator;
+            class.indirect_transfer_by_owner = indirect_transfer_by_owner;
+            class.extensible_by_creator = extensible_by_creator;
+            class.extensible_by_owner = extensible_by_owner;
+            let tokenobj = object::address_to_object<OrmTokenClass>(class_address);
+            let tokenclass = borrow_collection(&tokenobj);
+            collection::set_uri(&tokenclass.mutator_ref, collection_uri);
+            collection::set_description(&tokenclass.mutator_ref, collection_description);
+            return class_address
+        };
+        create_class_as_collection<UserClass>(
+            creator,
+            name,
+            direct_transfer,
+            deletable_by_creator,
+            deletable_by_owner,
+            indirect_transfer_by_creator,
+            indirect_transfer_by_owner,
+            extensible_by_creator,
+            extensible_by_owner,
+            collection_uri,
+            collection_description,
+            collection_max_supply,
+            collection_token_use_property_map,
+            collection_royalty_present,
+            collection_royalty_payee,
+            collection_royalty_denominator,
+            collection_royalty_numerator,
+        );
+        class_address
     }
 
     public entry fun set_uri<T: key>(
@@ -262,7 +368,7 @@ module apto_orm::orm_class {
         let class_address = object::object_address(&class);
         exists<OrmClass>(class_address)
     }
-    
+
     #[view]
     public fun is_token_class<T: key>(class: Object<T>): bool {
         let class_address = object::object_address(&class);
