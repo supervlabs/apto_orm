@@ -291,7 +291,7 @@ program
       throw new Error(`class '${class_name}' not found`);
     }
     const txn = await client.generateOrmTxn([package_owner], {
-      function: `${client.ormAddress}::${package_name}::patch_module`,
+      function: `${client.ormAddress}::${package_name}::update_module`,
       typeArguments: [],
       functionArguments: [],
     });

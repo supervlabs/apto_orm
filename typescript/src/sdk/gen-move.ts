@@ -143,7 +143,7 @@ export const initModule = (class_data: OrmClassMetadata) => {
 
 export const patchModule = (package_name: string, class_data: OrmClassMetadata) => {
   const code: string[] = [];
-  code.push(indent(`entry fun patch_module(user: &signer) {`));
+  code.push(indent(`entry fun update_module(user: &signer) {`));
   code.push(print(`let (orm_creator, _) = orm_module::get<${class_data.name}>(@${package_name});`));
   code.push(print(`let package = orm_creator::load_creator(user, orm_creator);`));
   code.push(print(`init_module(&package);`));
