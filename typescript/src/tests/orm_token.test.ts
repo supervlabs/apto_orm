@@ -13,7 +13,7 @@ const package_move_path = path.join(__dirname, '.move/orm_token_test');
   index_fields: ['id'],
   collection_name: 'AptoORM Membership',
   collection_uri: 'https://raw.githubusercontent.com/neoul/apto_orm/main/resource.png',
-  collection_description: 'Membership token for AptoORM users',
+  collection_description: 'Membership token for AptoORM users 111',
   max_supply: 1000n,
   token_use_property_map: false,
   royalty_present: true,
@@ -60,6 +60,13 @@ describe('AptoORM Token', () => {
     );
     for (const txnr of txnrs) {
       console.log('publishPackageTxns', txnr.hash);
+    }
+
+    {
+      const txn = await client.updateModuleTxn(package_creator, Membership);
+      const ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
+      const txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
+      console.log('updateModuleTxn', txnr.hash);
     }
 
     const membership: Membership = new Membership();

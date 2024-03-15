@@ -28,6 +28,7 @@ import {
   ClassType,
   OrmClassMetadata,
   ObjectAddressable,
+  ClassName,
 } from './types';
 import { getOrmClassMetadata } from './metadata';
 
@@ -484,6 +485,23 @@ export class OrmClient extends Aptos {
         function: `0x1::aptos_account::transfer`,
         typeArguments: [],
         functionArguments: [receiver, String(amount)],
+      },
+      options
+    );
+  }
+
+  async updateModuleTxn<OrmObject extends ObjectLiteral>(
+    package_owner: Account | AccountAddressInput,
+    target_class: ClassType<OrmObject> | ClassName,
+    options?: OrmTxnOptions
+  ) {
+    const metadata = getOrmClassMetadata(target_class);
+    return await this.generateOrmTxn(
+      [package_owner],
+      {
+        function: `${metadata.package_address}::${metadata.module_name}::update_module`,
+        typeArguments: [],
+        functionArguments: [],
       },
       options
     );
