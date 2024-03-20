@@ -40,12 +40,12 @@ export function getNodeUrl(program: Command) {
 }
 
 export function checkPackagePath(package_path: string) {
-  if (package_path.includes('-')) {
-    throw new Error('package_path should not include `-`');
-  }
   const package_name = path.basename(package_path);
   if (package_name === '.' || package_name === '..' || package_name === '') {
     throw new Error('package_path should not be `.` or `..`');
+  }
+  if (package_name.includes('-')) {
+    throw new Error('package_path should not include `-`');
   }
   const package_absolute_path = path.resolve(process.cwd(), package_path);
   return [package_absolute_path, package_name];
