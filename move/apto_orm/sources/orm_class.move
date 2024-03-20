@@ -154,6 +154,8 @@ module apto_orm::orm_class {
     ): signer {
         let creator_address = signer::address_of(creator);
         let ref = object::create_named_object(creator, *string::bytes(&name));
+        let transfer_ref = object::generate_transfer_ref(&ref);
+        object::disable_ungated_transfer(&transfer_ref);
         let class = OrmClass {
             creator: object::address_to_object<OrmCreator>(creator_address),
             name,
@@ -227,6 +229,8 @@ module apto_orm::orm_class {
                 collection_uri,
             )
         };
+        let transfer_ref = object::generate_transfer_ref(&ref);
+        object::disable_ungated_transfer(&transfer_ref);
         let class = OrmClass {
             creator: object::address_to_object<OrmCreator>(creator_address),
             name,
@@ -328,7 +332,9 @@ module apto_orm::orm_class {
             error::permission_denied(EORM_CLASS_SIGNER_NOT_FOUND),
         );
         let class_data = borrow_class(&class);
-        orm_creator::load_creator(creator_or_owner, class_data.creator);
+        if (creator_or_owner != class_data.creator) {
+            orm_creator::load_creator(creator_or_owner, class_data.creator);
+        };
         let ocs = borrow_global<OrmClassSigner>(class_address);
         object::generate_signer_for_extending(&ocs.extend_ref)
     }
