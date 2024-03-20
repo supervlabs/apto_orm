@@ -332,7 +332,8 @@ module apto_orm::orm_class {
             error::permission_denied(EORM_CLASS_SIGNER_NOT_FOUND),
         );
         let class_data = borrow_class(&class);
-        if (creator_or_owner != class_data.creator) {
+        let creator_or_owner_address = signer::address_of(creator_or_owner);
+        if (creator_or_owner_address != object::object_address(&class_data.creator)) {
             orm_creator::load_creator(creator_or_owner, class_data.creator);
         };
         let ocs = borrow_global<OrmClassSigner>(class_address);
