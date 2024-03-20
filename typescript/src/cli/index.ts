@@ -21,8 +21,8 @@ import { loadPackageAddress, retrieve } from './retrieve';
 export const program = new Command();
 program.name('apto_orm');
 program.description('Aptos Onchain Move ORM (Object–relational mapping)');
-program.option('  , --network <network>', 'The Aptos network to connect to');
-program.option('-n, --node_url <node_url>', 'Aptos Node URL');
+program.option('-n, --network <network>', 'The Aptos network to connect to');
+program.option('  , --node_url <node_url>', 'Aptos Node URL');
 program.option('  , --prepay_url <prepay_url>', 'The free prepay URL');
 program.option('  , --postpay_url <postpay_url>', 'The free postpay URL');
 
