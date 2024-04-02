@@ -72,6 +72,8 @@ export function ensureAddressString(address: AccountAddressInput) {
 export function toAddress(account: Account | AccountAddressInput): AccountAddress {
   if (account instanceof Account) {
     return account.accountAddress;
+  } else if ((account as any).accountAddress) {
+    return (account as any).accountAddress as AccountAddress;
   }
   return AccountAddress.from(account);
 }
