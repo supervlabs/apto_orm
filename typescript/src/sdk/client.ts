@@ -6,8 +6,6 @@ import {
   AccountAddressInput,
   HexInput,
   Account,
-  Ed25519Account,
-  SingleKeyAccount,
   AnyRawTransaction,
   AccountAuthenticator,
   AptosSettings,
@@ -20,6 +18,7 @@ import {
   setOrmObjectAddress,
   toPrimitiveType,
   getOrmObjectAddress,
+  isSignable,
 } from './utilities';
 import {
   OrmTxn,
@@ -120,7 +119,7 @@ export class OrmClient extends Aptos {
         options: options,
         withFeePayer: options?.payer ? true : false,
       });
-      if (sender instanceof Account || sender instanceof Ed25519Account || sender instanceof SingleKeyAccount) {
+      if (isSignable(sender)) {
         auths.push(this.transaction.sign({ signer: sender, transaction: txn }));
       } else {
         auths.push(null);
@@ -135,7 +134,7 @@ export class OrmClient extends Aptos {
         withFeePayer: options?.payer ? true : false,
       });
       signers.forEach((s) => {
-        if (s instanceof Account || s instanceof Ed25519Account || s instanceof SingleKeyAccount) {
+        if (isSignable(s)) {
           auths.push(this.transaction.sign({ signer: s, transaction: txn }));
         } else {
           auths.push(null);
@@ -144,7 +143,7 @@ export class OrmClient extends Aptos {
     }
     if (options?.payer) {
       const p = options.payer;
-      if (p instanceof Account || p instanceof Ed25519Account || p instanceof SingleKeyAccount) {
+      if (isSignable(p)) {
         payer_auth = this.transaction.signAsFeePayer({ signer: p, transaction: txn });
       }
     }
@@ -157,13 +156,13 @@ export class OrmClient extends Aptos {
       if (auths[i]) continue;
       if (signers.length <= i) continue;
       const s = signers[i];
-      if (s instanceof Account || s instanceof Ed25519Account || s instanceof SingleKeyAccount) {
+      if (isSignable(s)) {
         auths[i] = this.transaction.sign({ signer: s, transaction: ormtxn.txn });
       }
     }
     if (options?.payer) {
       const p = options.payer;
-      if (p instanceof Account || p instanceof Ed25519Account || p instanceof SingleKeyAccount) {
+      if (isSignable(p)) {
         ormtxn.payer_auth = this.transaction.signAsFeePayer({ signer: p, transaction: ormtxn.txn });
       }
     }
@@ -508,7 +507,7 @@ export class OrmClient extends Aptos {
   ) {
     let objtype = `${this.ormAddress}::orm_object::OrmObject`;
     let funcname = `${this.ormAddress}::orm_object::transfer_coins`;
-    const resources = await this.getAccountResources({accountAddress: toAddress(object)});
+    const resources = await this.getAccountResources({ accountAddress: toAddress(object) });
     for (const resource of resources) {
       if (resource?.type == `${this.ormAddress}::orm_class::OrmClass`) {
         objtype = `${this.ormAddress}::orm_class::OrmClass`;
@@ -539,7 +538,7 @@ export class OrmClient extends Aptos {
   ) {
     let objtype = `${this.ormAddress}::orm_object::OrmObject`;
     let funcname = `${this.ormAddress}::orm_object::set_royalty`;
-    const resources = await this.getAccountResources({accountAddress: toAddress(object)});
+    const resources = await this.getAccountResources({ accountAddress: toAddress(object) });
     for (const resource of resources) {
       if (resource?.type == `${this.ormAddress}::orm_class::OrmClass`) {
         objtype = `${this.ormAddress}::orm_class::OrmClass`;

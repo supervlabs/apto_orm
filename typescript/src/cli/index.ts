@@ -11,7 +11,7 @@ import orm, {
   loadAccountFromPrivatekeyFile,
   toAddress,
 } from '../sdk';
-import { Account, Ed25519Account, SingleKeyAccount } from '@aptos-labs/ts-sdk';
+import { Account } from '@aptos-labs/ts-sdk';
 
 import { loadBaseObjectString, loadBaseTokenString } from './classes';
 import { loadOrmClient, checkPackagePath, loadPackageClasses, getNodeUrl } from './utilities';
@@ -263,14 +263,14 @@ program
   });
 
 program
-  .command('patch')
+  .command('update-module')
   .description('Patch the target module')
   .argument('<package_path>', 'The AptoORM package path and name to publish')
   .requiredOption('-k, --key <key_file>', 'The private key file of the package owner')
   .requiredOption('-c, --class <CLASS_NAME>', 'The class to be created e.g. -c BaseObject')
   .action(async function () {
     const client = loadOrmClient(program);
-    const { key, data, to } = this.opts();
+    const { key } = this.opts();
     const class_name = this.opts()?.class;
     let package_path: string = this.args[0];
     const [_package_path, package_name] = checkPackagePath(package_path);
@@ -438,7 +438,7 @@ program
     console.log(`txn: ${txnr.hash}`);
   });
 
-  program
+program
   .command('set-royalty')
   .description('Change the royalty of the target object')
   .requiredOption('-a, --address <ADDRESS>', 'The address of the object to update')
@@ -452,7 +452,7 @@ program
     if (!key) {
       throw new Error(`key file not specified`);
     }
-    
+
     const creator_or_owner = loadAccountFromPrivatekeyFile(key);
     const txn = await client.setRoyaltyTxn(creator_or_owner, address, payee, denominator, numerator);
     const ptxn = await client.signAndsubmitOrmTxn([creator_or_owner], txn);

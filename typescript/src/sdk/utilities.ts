@@ -8,8 +8,6 @@ import {
   Account,
   Ed25519PrivateKey,
   GenerateAccount,
-  Ed25519Account,
-  SingleKeyAccount,
 } from '@aptos-labs/ts-sdk';
 import {
   OrmObjectConfig,
@@ -21,6 +19,7 @@ import {
   OrmFieldData,
   object_addr,
   ObjectAddressable,
+  Signable,
 } from './types';
 import { sha3_256 as sha3Hash } from '@noble/hashes/sha3';
 import toml from 'toml';
@@ -71,8 +70,34 @@ export function ensureAddressString(address: AccountAddressInput) {
   return AccountAddress.from(address).toString();
 }
 
+/**
+ * Trimmes extra zeroes in the begining of a string
+ * @returns Inner hexString without leading zeroes
+ * @example
+ * ```
+ *  new toShortString("0x000000string").toShortString(); // result = "0xstring"
+ * ```
+ */
+export function getShortAddress(address: Account | AccountAddressInput): string {
+  if (isSignable(address)) {
+    address = address.accountAddress;
+  } else if (typeof address === 'string') {
+    address = AccountAddress.fromString(address);
+  } else {
+    address = AccountAddress.from(address);
+  }
+  const trimmed = address.toString().replace(/^0x0*/, '');
+  return `0x${trimmed}`;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isSignable(account: any): account is Signable {
+  if (account instanceof Account) return true;
+  return account && typeof account.sign === 'function' && account.accountAddress instanceof AccountAddress;
+}
+
 export function toAddress(account: Account | AccountAddressInput): AccountAddress {
-  if (account instanceof Account || account instanceof Ed25519Account || account instanceof SingleKeyAccount) {
+  if (isSignable(account)) {
     return account.accountAddress;
   }
   // else if ((account as any).accountAddress) {
