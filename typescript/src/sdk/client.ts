@@ -6,6 +6,8 @@ import {
   AccountAddressInput,
   HexInput,
   Account,
+  Ed25519Account,
+  SingleKeyAccount,
   AnyRawTransaction,
   AccountAuthenticator,
   AptosSettings,
@@ -118,7 +120,7 @@ export class OrmClient extends Aptos {
         options: options,
         withFeePayer: options?.payer ? true : false,
       });
-      if (sender instanceof Account) {
+      if (sender instanceof Account || sender instanceof Ed25519Account || sender instanceof SingleKeyAccount) {
         auths.push(this.transaction.sign({ signer: sender, transaction: txn }));
       } else {
         auths.push(null);
@@ -133,15 +135,18 @@ export class OrmClient extends Aptos {
         withFeePayer: options?.payer ? true : false,
       });
       signers.forEach((s) => {
-        if (s instanceof Account) {
+        if (s instanceof Account || s instanceof Ed25519Account || s instanceof SingleKeyAccount) {
           auths.push(this.transaction.sign({ signer: s, transaction: txn }));
         } else {
           auths.push(null);
         }
       });
     }
-    if (options?.payer && options.payer instanceof Account) {
-      payer_auth = this.transaction.signAsFeePayer({ signer: options.payer, transaction: txn });
+    if (options?.payer) {
+      const p = options.payer;
+      if (p instanceof Account || p instanceof Ed25519Account || p instanceof SingleKeyAccount) {
+        payer_auth = this.transaction.signAsFeePayer({ signer: p, transaction: txn });
+      }
     }
     return { type, txn, auths, payer_auth };
   }
@@ -152,12 +157,15 @@ export class OrmClient extends Aptos {
       if (auths[i]) continue;
       if (signers.length <= i) continue;
       const s = signers[i];
-      if (s instanceof Account) {
+      if (s instanceof Account || s instanceof Ed25519Account || s instanceof SingleKeyAccount) {
         auths[i] = this.transaction.sign({ signer: s, transaction: ormtxn.txn });
       }
     }
-    if (options?.payer && options.payer instanceof Account) {
-      ormtxn.payer_auth = this.transaction.signAsFeePayer({ signer: options.payer, transaction: ormtxn.txn });
+    if (options?.payer) {
+      const p = options.payer;
+      if (p instanceof Account || p instanceof Ed25519Account || p instanceof SingleKeyAccount) {
+        ormtxn.payer_auth = this.transaction.signAsFeePayer({ signer: p, transaction: ormtxn.txn });
+      }
     }
     return ormtxn;
   }

@@ -11,7 +11,7 @@ import orm, {
   loadAccountFromPrivatekeyFile,
   toAddress,
 } from '../sdk';
-import { Account } from '@aptos-labs/ts-sdk';
+import { Account, Ed25519Account, SingleKeyAccount } from '@aptos-labs/ts-sdk';
 
 import { loadBaseObjectString, loadBaseTokenString } from './classes';
 import { loadOrmClient, checkPackagePath, loadPackageClasses, getNodeUrl } from './utilities';

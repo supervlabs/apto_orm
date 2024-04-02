@@ -17,6 +17,8 @@ import {
   MultiAgentTransaction,
   AccountAuthenticator,
   EntryFunctionArgumentTypes,
+  Ed25519Account,
+  SingleKeyAccount,
 } from '@aptos-labs/ts-sdk';
 
 export { MoveType, MoveValue };
@@ -204,7 +206,7 @@ export type Bytes = Uint8Array;
 export type OrmFunctionPayload = InputEntryFunctionData | InputMultiSigData;
 
 // [FIXME] - payer => boolean으로 변경 - aptos-labs/ts-sdk 구조로 변경 필요
-export type OrmTxnOptions = InputGenerateTransactionOptions & { payer?: Account | boolean };
+export type OrmTxnOptions = InputGenerateTransactionOptions & { payer?: Account | Ed25519Account | SingleKeyAccount | boolean };
 export type FeeFreeOrmTxnOptions = Pick<OrmTxnOptions, 'accountSequenceNumber' | 'expireTimestamp'>;
 
 export type PendingTransaction = PendingTransactionResponse;

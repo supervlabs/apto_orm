@@ -8,6 +8,8 @@ import {
   Account,
   Ed25519PrivateKey,
   GenerateAccount,
+  Ed25519Account,
+  SingleKeyAccount,
 } from '@aptos-labs/ts-sdk';
 import {
   OrmObjectConfig,
@@ -70,11 +72,12 @@ export function ensureAddressString(address: AccountAddressInput) {
 }
 
 export function toAddress(account: Account | AccountAddressInput): AccountAddress {
-  if (account instanceof Account) {
+  if (account instanceof Account || account instanceof Ed25519Account || account instanceof SingleKeyAccount) {
     return account.accountAddress;
-  } else if ((account as any).accountAddress) {
-    return (account as any).accountAddress as AccountAddress;
   }
+  // else if ((account as any).accountAddress) {
+  //   return (account as any).accountAddress as AccountAddress;
+  // }
   return AccountAddress.from(account);
 }
 
