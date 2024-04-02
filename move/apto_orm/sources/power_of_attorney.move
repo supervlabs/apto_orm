@@ -13,6 +13,7 @@ module apto_orm::power_of_attorney {
     const ENOT_AUTHORIZED_OWNER: u64 = 2;
     const EDELEGATION_EXPIRED: u64 = 3;
     const EPOWER_OF_ATTORNEY_PAUSED: u64 = 4;
+    const ENOT_AUTHORIZED_POA: u64 = 5;
 
     /// The authorized account on behalf of original owner must have the PowerOfAttorney resource.
     struct PowerOfAttorney has key, drop {
@@ -47,7 +48,7 @@ module apto_orm::power_of_attorney {
             let poa = borrow_global<PowerOfAttorney>(maybe_owner);
             assert!(
                 object::owner(*object) == poa.designator,
-                error::permission_denied(ENOT_AUTHORIZED_OWNER),
+                error::permission_denied(ENOT_AUTHORIZED_POA),
             );
             assert!(
                 poa.expiration_date == 0 ||

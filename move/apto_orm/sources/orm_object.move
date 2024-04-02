@@ -464,6 +464,34 @@ module apto_orm::orm_object {
         property_map::update_typed(ref, &key, value);
     }
 
+    public entry fun transfer_coins<T: key, CoinType>(
+        creator_or_owner: &signer,
+        from: Object<T>,
+        to: address, amount: u64,
+    ) acquires OrmObject {
+        let objec_signer = load_signer(creator_or_owner, from);
+        aptos_account::transfer_coins<CoinType>(&objec_signer, to, amount);
+    }
+
+    public entry fun set_royalty<T: key>(
+        creator_or_owner: &signer,
+        token: Object<T>,
+        payee: address,
+        denominator: u64,
+        numerator: u64,
+    ) acquires OrmObject, OrmToken {
+        let creator_or_owner_address = signer::address_of(creator_or_owner);
+        let orm_token = authorized_token_borrow(&token, creator_or_owner_address);
+        assert!(
+            option::is_some(&orm_token.royalty_mutator_ref),
+            error::permission_denied(ETOKEN_PROPERTY_NOT_MUTABLE),
+        );
+        let ref = option::borrow(&orm_token.royalty_mutator_ref);
+
+        let r = royalty::create(numerator, denominator, payee);
+        royalty::update(ref, r);
+    }
+
     #[view]
     public fun get<T: key>(object: Object<T>): (
         Object<OrmCreator>, Object<OrmClass>
