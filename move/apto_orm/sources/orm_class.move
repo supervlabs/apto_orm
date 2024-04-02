@@ -297,7 +297,11 @@ module apto_orm::orm_class {
             class.extensible_by_creator = extensible_by_creator;
             class.extensible_by_owner = extensible_by_owner;
             let tokenobj = object::address_to_object<OrmTokenClass>(class_address);
-            let tokenclass = borrow_collection(&tokenobj);
+            let tokenclass = borrow_collection_mut(&tokenobj);
+            tokenclass.token_mutable_by_creator = extensible_by_creator;
+            tokenclass.token_mutable_by_owner = extensible_by_owner;
+            tokenclass.token_use_property_map = collection_token_use_property_map;
+            tokenclass.royalty_present = collection_royalty_present;
             collection::set_uri(&tokenclass.mutator_ref, collection_uri);
             collection::set_description(&tokenclass.mutator_ref, collection_description);
             return class_address
