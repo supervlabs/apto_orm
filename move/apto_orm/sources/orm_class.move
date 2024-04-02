@@ -6,6 +6,7 @@ module apto_orm::orm_class {
     use std::string::{Self, String};
     use aptos_framework::event;
     use aptos_framework::object::{Self, Object};
+    use aptos_framework::aptos_account;
     use aptos_std::type_info;
 
     use aptos_token_objects::collection;
@@ -324,7 +325,7 @@ module apto_orm::orm_class {
     }
 
     public fun load_class_signer<T: key>(
-        creator_or_owner: &signer, class: Object<T>
+        class_owner: &signer, class: Object<T>
     ): signer acquires OrmClass, OrmClassSigner{
         let class_address = object::object_address(&class);
         assert!(
@@ -332,9 +333,9 @@ module apto_orm::orm_class {
             error::permission_denied(EORM_CLASS_SIGNER_NOT_FOUND),
         );
         let class_data = borrow_class(&class);
-        let creator_or_owner_address = signer::address_of(creator_or_owner);
-        if (creator_or_owner_address != object::object_address(&class_data.creator)) {
-            orm_creator::load_creator(creator_or_owner, class_data.creator);
+        let owner_address = signer::address_of(class_owner);
+        if (owner_address != object::object_address(&class_data.creator)) {
+            orm_creator::load_creator(class_owner, class_data.creator);
         };
         let ocs = borrow_global<OrmClassSigner>(class_address);
         object::generate_signer_for_extending(&ocs.extend_ref)
@@ -344,13 +345,8 @@ module apto_orm::orm_class {
         class_owner: &signer,
         class: Object<T>,
         uri: String,
-    ) acquires OrmClass, OrmTokenClass {
-        let class_owner_address = signer::address_of(class_owner);
-        let class_data = borrow_class(&class);
-        assert!(
-            object::owner(class_data.creator) == class_owner_address,
-            error::permission_denied(EOPERATION_NOT_AUTHORIZED),
-        );
+    ) acquires OrmClass, OrmTokenClass, OrmClassSigner {
+        load_class_signer(class_owner, class);
         let tokenclass = borrow_collection(&class);
         collection::set_uri(&tokenclass.mutator_ref, uri);
     }
@@ -359,15 +355,32 @@ module apto_orm::orm_class {
         class_owner: &signer,
         class: Object<T>,
         description: String,
-    ) acquires OrmClass, OrmTokenClass {
-        let class_owner_address = signer::address_of(class_owner);
-        let class_data = borrow_class(&class);
-        assert!(
-            object::owner(class_data.creator) == class_owner_address,
-            error::permission_denied(EOPERATION_NOT_AUTHORIZED),
-        );
+    ) acquires OrmClass, OrmTokenClass, OrmClassSigner {
+        load_class_signer(class_owner, class);
         let tokenclass = borrow_collection(&class);
         collection::set_description(&tokenclass.mutator_ref, description);
+    }
+
+    public entry fun set_royalty<T: key>(
+        class_owner: &signer,
+        class: Object<T>,
+        payee: address,
+        denominator: u64,
+        numerator: u64,
+    ) acquires OrmClass, OrmTokenClass, OrmClassSigner {
+        load_class_signer(class_owner, class);
+        let tokenclass = borrow_collection(&class);
+        let r = royalty::create(numerator, denominator, payee);
+        royalty::update(&tokenclass.royalty_mutator_ref, r);
+    }
+
+    public entry fun transfer_coins<T: key, CoinType>(
+        class_owner: &signer,
+        from: Object<T>,
+        to: address, amount: u64,
+    ) acquires OrmClass, OrmClassSigner {
+        let class_signer = load_class_signer(class_owner, from);
+        aptos_account::transfer_coins<CoinType>(&class_signer, to, amount);
     }
 
     // #[view]

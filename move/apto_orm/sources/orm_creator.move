@@ -102,6 +102,16 @@ module apto_orm::orm_creator {
         object::create_object_address(&user, seed)
     }
 
+    public entry fun transfer_coins<T: key, CoinType>(
+        owner: &signer,
+        from: Object<T>,
+        to: address, amount: u64,
+    ) acquires OrmCreator {
+        let orm_creator = object::convert<T, OrmCreator>(from);
+        let creator_signer = load_creator(owner, orm_creator);
+        aptos_account::transfer_coins<CoinType>(&creator_signer, to, amount);
+    }
+
     // public fun load_creator_by_ticket<phantom ProofChallenge>() {} // TODO
 
 }

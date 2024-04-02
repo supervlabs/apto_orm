@@ -9,6 +9,7 @@ import {
   AnyRawTransaction,
   AccountAuthenticator,
   AptosSettings,
+  MoveFunctionId,
 } from '@aptos-labs/ts-sdk';
 import {
   toAddress,
@@ -485,6 +486,65 @@ export class OrmClient extends Aptos {
         function: `0x1::aptos_account::transfer`,
         typeArguments: [],
         functionArguments: [receiver, String(amount)],
+      },
+      options
+    );
+  }
+
+  async transferCoinsFromObjectTxn(
+    owner: Account | AccountAddressInput,
+    object: AccountAddressInput,
+    receiver: AccountAddressInput,
+    amount: number | bigint,
+    options?: OrmTxnOptions
+  ) {
+    let objtype = `${this.ormAddress}::orm_object::OrmObject`;
+    let funcname = `${this.ormAddress}::orm_object::transfer_coins`;
+    const resources = await this.getAccountResources({accountAddress: toAddress(object)});
+    for (const resource of resources) {
+      if (resource?.type == `${this.ormAddress}::orm_class::OrmClass`) {
+        objtype = `${this.ormAddress}::orm_class::OrmClass`;
+        funcname = `${this.ormAddress}::orm_class::transfer_coins`;
+      } else if (resource?.type == `${this.ormAddress}::orm_creator::OrmCreator`) {
+        objtype = `${this.ormAddress}::orm_creator::OrmCreator`;
+        funcname = `${this.ormAddress}::orm_creator::transfer_coins`;
+      }
+    }
+    return await this.generateOrmTxn(
+      [owner],
+      {
+        function: funcname as MoveFunctionId,
+        typeArguments: [objtype, `0x1::aptos_coin::AptosCoin`],
+        functionArguments: [object, receiver, String(amount)],
+      },
+      options
+    );
+  }
+
+  async setRoyaltyTxn(
+    owner: Account | AccountAddressInput,
+    object: AccountAddressInput,
+    payee: AccountAddressInput,
+    denominator: number | bigint,
+    numerator: number | bigint,
+    options?: OrmTxnOptions
+  ) {
+    let objtype = `${this.ormAddress}::orm_object::OrmObject`;
+    let funcname = `${this.ormAddress}::orm_object::set_royalty`;
+    const resources = await this.getAccountResources({accountAddress: toAddress(object)});
+    for (const resource of resources) {
+      if (resource?.type == `${this.ormAddress}::orm_class::OrmClass`) {
+        objtype = `${this.ormAddress}::orm_class::OrmClass`;
+        funcname = `${this.ormAddress}::orm_class::set_royalty`;
+        break;
+      }
+    }
+    return await this.generateOrmTxn(
+      [owner],
+      {
+        function: funcname as MoveFunctionId,
+        typeArguments: [objtype],
+        functionArguments: [object, payee, String(denominator), String(numerator)],
       },
       options
     );
