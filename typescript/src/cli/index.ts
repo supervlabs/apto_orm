@@ -438,6 +438,28 @@ program
     console.log(`txn: ${txnr.hash}`);
   });
 
+  program
+  .command('set-royalty')
+  .description('Change the royalty of the target object')
+  .requiredOption('-a, --address <ADDRESS>', 'The address of the object to update')
+  .requiredOption('-p, --payee <ADDRESS>', 'The address received the object')
+  .requiredOption('  , --numerator <NUMBER>', 'The numerator of the royalty', '5')
+  .requiredOption('  , --denominator <NUMBER>', 'The denominator of the royalty', '100')
+  .requiredOption('-k, --key <key_file>', 'The private key file of the object owner or the creator')
+  .action(async function () {
+    const client = loadOrmClient(program);
+    const { key, address, payee, denominator, numerator } = this.opts();
+    if (!key) {
+      throw new Error(`key file not specified`);
+    }
+    
+    const creator_or_owner = loadAccountFromPrivatekeyFile(key);
+    const txn = await client.setRoyaltyTxn(creator_or_owner, address, payee, denominator, numerator);
+    const ptxn = await client.signAndsubmitOrmTxn([creator_or_owner], txn);
+    const txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
+    console.log(`txn: ${txnr.hash}`);
+  });
+
 export const orm_class = new Command('class')
   .description('Update the fields of a AptoORM Class (Collection)')
   .argument('[set-uri|set-description]', 'Update the uri or description of a AptoORM Class (Collection)')

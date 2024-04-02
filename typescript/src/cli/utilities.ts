@@ -15,7 +15,7 @@ export function loadOrmClient(program: Command) {
   });
   const config = new AptosConfig({
     network: network || (process.env.APTOS_NETWORK as any),
-    fullnode: node_url || process.env.APTOS_NODE_URL,
+    fullnode: node_url,
     clientConfig: api_key && headers.length > 0 ? { API_KEY: api_key, HEADERS: headers } : undefined,
   });
   if (prepay_url)

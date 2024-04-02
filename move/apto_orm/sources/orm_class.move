@@ -341,12 +341,22 @@ module apto_orm::orm_class {
         object::generate_signer_for_extending(&ocs.extend_ref)
     }
 
+    fun check_class_signer<T: key>(
+        class_owner: &signer, class: Object<T>
+    ) acquires OrmClass {
+        let class_data = borrow_class(&class);
+        let owner_address = signer::address_of(class_owner);
+        if (owner_address != object::object_address(&class_data.creator)) {
+            orm_creator::load_creator(class_owner, class_data.creator);
+        };
+    }
+
     public entry fun set_uri<T: key>(
         class_owner: &signer,
         class: Object<T>,
         uri: String,
-    ) acquires OrmClass, OrmTokenClass, OrmClassSigner {
-        load_class_signer(class_owner, class);
+    ) acquires OrmClass, OrmTokenClass {
+        check_class_signer(class_owner, class);
         let tokenclass = borrow_collection(&class);
         collection::set_uri(&tokenclass.mutator_ref, uri);
     }
@@ -355,8 +365,8 @@ module apto_orm::orm_class {
         class_owner: &signer,
         class: Object<T>,
         description: String,
-    ) acquires OrmClass, OrmTokenClass, OrmClassSigner {
-        load_class_signer(class_owner, class);
+    ) acquires OrmClass, OrmTokenClass {
+        check_class_signer(class_owner, class);
         let tokenclass = borrow_collection(&class);
         collection::set_description(&tokenclass.mutator_ref, description);
     }
@@ -367,8 +377,8 @@ module apto_orm::orm_class {
         payee: address,
         denominator: u64,
         numerator: u64,
-    ) acquires OrmClass, OrmTokenClass, OrmClassSigner {
-        load_class_signer(class_owner, class);
+    ) acquires OrmClass, OrmTokenClass {
+        check_class_signer(class_owner, class);
         let tokenclass = borrow_collection(&class);
         let r = royalty::create(numerator, denominator, payee);
         royalty::update(&tokenclass.royalty_mutator_ref, r);
