@@ -476,26 +476,31 @@ program
     'The numerator of the royalty',
     '5',
   )
+  .option(
+    '  , --offset <offset>',
+    'Offset to start from',
+    '0',
+  )
   .requiredOption(
     '-k, --key <key_file>',
     'The private key file of the package owner',
   )
   .action(async function () {
     const client = loadOrmClient(program);
-    const { key, collection, payee, denominator, numerator } = this.optsWithGlobals();
+    const { key, collection, payee, denominator, numerator, offset } = this.optsWithGlobals();
     const owner = loadAccountFromPrivatekeyFile(key);
     const classAddr = getShortAddress(collection);
     const payeeAddr = getShortAddress(payee);
 
-    let offset = 0;
-    const limit = 100;
+    let _offset = Number(offset);
+    const limit = 10;
     do {
       const query = `query MyQuery {
         current_token_datas_v2(
           where: {collection_id: {_eq: "${classAddr}"}}
           order_by: {token_data_id: asc}
           limit: ${limit}
-          offset: ${offset}
+          offset: ${_offset}
         ) {
           token_data_id
         }
@@ -509,7 +514,7 @@ program
       if (!r.current_token_datas_v2) break;
       const current_token_datas_v2: any[] = r.current_token_datas_v2;
       const tokenAddrs = current_token_datas_v2.map((t: any): string => String(t.token_data_id));
-      console.log(`tokenAddrs length: ${tokenAddrs.length}`);
+      console.log(`offset=${_offset}, tokenAddrs length: ${tokenAddrs.length}`);
       console.log(tokenAddrs);
       const txn = await client.generateOrmTxn([owner], {
         function: `${client.ormAddress}::orm_object::batch_set_royalty`,
@@ -525,9 +530,9 @@ program
         [owner],
         txn,
       );
-      console.log(`${txnr.hash}, ${txnr.success}`);
+      console.log(`offset=${_offset} ${txnr.hash}, ${txnr.success}`);
       if (r.current_token_datas_v2.length < limit) break;
-      offset += limit;
+      _offset += limit;
     } while (true);
   });
 
