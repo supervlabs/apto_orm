@@ -1,6 +1,7 @@
 module apto_orm::orm_object {
     use std::signer;
     use std::error;
+    use std::vector;
     use std::string::{Self, String};
     use std::option::{Self, Option};
     use aptos_framework::object::{Self, Object, ConstructorRef};
@@ -490,6 +491,19 @@ module apto_orm::orm_object {
 
         let r = royalty::create(numerator, denominator, payee);
         royalty::update(ref, r);
+    }
+
+    public entry fun batch_set_royalty(
+        creator_or_owner: &signer,
+        tokens: vector<address>,
+        payee: address,
+        denominator: u64,
+        numerator: u64,
+    ) acquires OrmObject, OrmToken {
+        vector::for_each_ref(&tokens, |token| {
+            let t = object::address_to_object<OrmToken>(*token);
+            set_royalty(creator_or_owner, t, payee, denominator, numerator);
+        });
     }
 
     #[view]

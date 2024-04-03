@@ -8,6 +8,7 @@ import orm, {
   OrmFreePrepayClient,
   getOrmPackageCreator,
   getPackageAddress,
+  getShortAddress,
   loadAccountFromPrivatekeyFile,
   toAddress,
 } from '../sdk';
@@ -458,6 +459,76 @@ program
     const ptxn = await client.signAndsubmitOrmTxn([creator_or_owner], txn);
     const txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
     console.log(`txn: ${txnr.hash}`);
+  });
+
+program
+  .command('batch-set-royalty')
+  .description('Change the royalty of all the target objects')
+  .requiredOption('-c, --collection <address>', 'The collection address')
+  .requiredOption('-p, --payee <address>', 'The royalty payee address')
+  .requiredOption(
+    '  , --denominator <denominator>',
+    'The denominator of the royalty',
+    '100',
+  )
+  .requiredOption(
+    '  , --numerator <numerator>',
+    'The numerator of the royalty',
+    '5',
+  )
+  .requiredOption(
+    '-k, --key <key_file>',
+    'The private key file of the package owner',
+  )
+  .action(async function () {
+    const client = loadOrmClient(program);
+    const { key, collection, payee, denominator, numerator } = this.optsWithGlobals();
+    const owner = loadAccountFromPrivatekeyFile(key);
+    const classAddr = getShortAddress(collection);
+    const payeeAddr = getShortAddress(payee);
+
+    let offset = 0;
+    const limit = 100;
+    do {
+      const query = `query MyQuery {
+        current_token_datas_v2(
+          where: {collection_id: {_eq: "${classAddr}"}}
+          order_by: {token_data_id: asc}
+          limit: ${limit}
+          offset: ${offset}
+        ) {
+          token_data_id
+        }
+      }
+      `;
+      const r: any = await client.queryIndexer({
+        query: {
+          query,
+        },
+      });
+      if (!r.current_token_datas_v2) break;
+      const current_token_datas_v2: any[] = r.current_token_datas_v2;
+      const tokenAddrs = current_token_datas_v2.map((t: any): string => String(t.token_data_id));
+      console.log(`tokenAddrs length: ${tokenAddrs.length}`);
+      console.log(tokenAddrs);
+      const txn = await client.generateOrmTxn([owner], {
+        function: `${client.ormAddress}::orm_object::batch_set_royalty`,
+        typeArguments: [],
+        functionArguments: [
+          tokenAddrs,
+          payeeAddr,
+          denominator,
+          numerator,
+        ],
+      });
+      const txnr = await client.signSubmitAndWaitOrmTxnWithResult(
+        [owner],
+        txn,
+      );
+      console.log(`${txnr.hash}, ${txnr.success}`);
+      if (r.current_token_datas_v2.length < limit) break;
+      offset += limit;
+    } while (true);
   });
 
 export const orm_class = new Command('class')
