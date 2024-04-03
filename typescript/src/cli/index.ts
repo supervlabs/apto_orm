@@ -493,7 +493,7 @@ program
     const payeeAddr = getShortAddress(payee);
 
     let _offset = Number(offset);
-    const limit = 10;
+    const limit = 100;
     do {
       const query = `query MyQuery {
         current_token_datas_v2(
