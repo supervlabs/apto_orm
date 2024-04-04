@@ -134,12 +134,29 @@ publish_move() {
    cd - >> /dev/null
 }
 
+function check_running() {
+  while :
+  do
+    sleep 1s
+    # tap:ok
+    ready=$(curl -s http://localhost:8081)
+    if [[ $ready == "tap:ok" ]];
+    # not_ready=$(curl -s http://localhost:8090 | jq .not_ready[0])
+#  => => # {"ready":[{"NodeApi":"http://0.0.0.0:8080/"},{"DataServiceGrpc":"http://0.0.0.0:50051/"}],"not_ready":[{"Http":["http://0.0.0.0:8081/","Faucet"]}]}
+    # if [[ $not_ready =~ "null" ]];
+    then
+      echo -e "> running ... ok!"
+      break
+    fi
+  done
+}
+
 current_dir=${PWD}
 cd "$project_dir"
 case $1 in
-   start) aptos node run-local-testnet --with-faucet --faucet-port 8081 --force-restart --assume-yes --with-indexer-api &;;
+   start) aptos node run-local-testnet --with-faucet --faucet-port 8081 --force-restart --assume-yes --with-indexer-api & check_running;;
    restart) aptos node run-local-testnet --with-faucet --faucet-port 8081 --assume-yes --with-indexer-api &;;
-   stop) killall -q aptos >> /dev/null 2>&1 && docker kill local-testnet-indexer-api && docker kill local-testnet-postgres;;
+   stop) killall -q aptos >> /dev/null 2>&1 && docker kill local-testnet-indexer-api >> /dev/null 2>&1 && docker kill local-testnet-postgres >> /dev/null 2>&1;;
    rm) killall -q aptos >> /dev/null 2>&1 && rm -rf $(find .aptos -maxdepth 1 -mindepth 1 -name "*" ! -name "config.yaml");;
    *) "$@";;
 esac
