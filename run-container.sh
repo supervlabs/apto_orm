@@ -1,14 +1,14 @@
 #!/bin/bash
-# cd /
-# service postgresql start
-# sudo -u postgres createuser root
-# sudo -u postgres createdb local_testnet
-# sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'mypassword'"
-# sudo -u postgres psql -c "grant all privileges on database local_testnet to postgres;"
+cd /
+service postgresql start
+sudo -u postgres createuser root
+sudo -u postgres createdb local_testnet
+sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'mypassword'"
+sudo -u postgres psql -c "grant all privileges on database local_testnet to postgres;"
 
 cd /root
 aptos node run-local-testnet --with-faucet --faucet-port 8081 --assume-yes &
-# aptos node run-local-testnet --with-indexer-api --use-host-postgres --host-postgres-password mypassword &
+aptos node run-local-testnet --with-indexer-api --use-host-postgres --host-postgres-password mypassword &
 
 # Image postgres:14.9 not found, pulling it now...
 # Image hasura/graphql-engine:v2.35.0 not found, pulling it now...
