@@ -135,29 +135,80 @@ publish_move() {
 }
 
 function check_running() {
-  while :
-  do
-    sleep 1s
-    # tap:ok
-    ready=$(curl -s http://localhost:8081)
-    if [[ $ready == "tap:ok" ]];
-    # not_ready=$(curl -s http://localhost:8090 | jq .not_ready[0])
-#  => => # {"ready":[{"NodeApi":"http://0.0.0.0:8080/"},{"DataServiceGrpc":"http://0.0.0.0:50051/"}],"not_ready":[{"Http":["http://0.0.0.0:8081/","Faucet"]}]}
-    # if [[ $not_ready =~ "null" ]];
-    then
-      echo -e "> running ... ok!"
-      break
-    fi
-  done
+   sleep 1s
+   while :
+   do
+      sleep 1s
+      ready=$(curl -s http://localhost:8081)
+      if [[ $ready == "tap:ok" ]];
+      then
+         echo -e "> running ... ok!"
+         break
+      fi
+   done
+   sleep 1s
+}
+
+function node_start() {
+#   aptos node run-local-testnet --with-faucet --faucet-port 8081 --force-restart --assume-yes --with-indexer-api &
+   aptos node run-local-testnet --with-faucet --faucet-port 8081 --force-restart --assume-yes &
+}
+
+function node_stop() {
+  killall -q aptos >> /dev/null 2>&1
+  docker kill local-testnet-indexer-api >> /dev/null 2>&1
+  docker kill local-testnet-postgres >> /dev/null 2>&1
+}
+
+function node_restart() {
+#   aptos node run-local-testnet --with-faucet --faucet-port 8081 --assume-yes --with-indexer-api &
+   aptos node run-local-testnet --with-faucet --faucet-port 8081 --assume-yes &
+}
+
+function node_reset() {
+  node_stop
+  rm -rf $(find .aptos -maxdepth 1 -mindepth 1 -name "*" ! -name "config.yaml")
+}
+
+function orm_publish_local() {
+   APTO_ORM_ADDR=$(yq '.profiles.default.account' $config_yaml) || exit 1
+
+   cd "move/utilities"
+   aptos move publish  --assume-yes --bytecode-version 6 --private-key-file ../../.key/default \
+   --url http://localhost:8080 --named-addresses apto_orm=$APTO_ORM_ADDR || exit 1
+   cd - >> /dev/null
+
+   cd "move/apto_orm"
+   aptos move publish  --assume-yes --bytecode-version 6 --private-key-file ../../.key/default \
+   --url http://localhost:8080 --named-addresses apto_orm=$APTO_ORM_ADDR || exit 1
+   cd - >> /dev/null
+}
+
+function orm_test_local() {
+   APTO_ORM_ADDR=$(yq '.profiles.default.account' $config_yaml) || exit 1
+
+   cd "move/utilities"
+   aptos move test --bytecode-version 6 --named-addresses apto_orm=0x1e51 --ignore-compile-warnings || exit 1
+   cd - >> /dev/null
+
+   cd "move/apto_orm"
+   aptos move test --bytecode-version 6 --named-addresses apto_orm=0x1e51 --ignore-compile-warnings || exit 1
+   cd - >> /dev/null
+
+   cd typescript
+   pnpm install
+   pnpm build
+   pnpm test
 }
 
 current_dir=${PWD}
 cd "$project_dir"
 case $1 in
-   start) aptos node run-local-testnet --with-faucet --faucet-port 8081 --force-restart --assume-yes --with-indexer-api & check_running;;
-   restart) aptos node run-local-testnet --with-faucet --faucet-port 8081 --assume-yes --with-indexer-api &;;
-   stop) killall -q aptos >> /dev/null 2>&1 && docker kill local-testnet-indexer-api >> /dev/null 2>&1 && docker kill local-testnet-postgres >> /dev/null 2>&1;;
-   rm) killall -q aptos >> /dev/null 2>&1 && rm -rf $(find .aptos -maxdepth 1 -mindepth 1 -name "*" ! -name "config.yaml");;
+   start) node_start && check_running && create_accounts local && orm_publish_local;;
+   restart) node_restart;;
+   stop) node_stop;;
+   reset) node_reset;;
+   test) orm_test_local;;
    *) "$@";;
 esac
 cd "$current_dir" >> /dev/null
