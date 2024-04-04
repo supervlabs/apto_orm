@@ -187,18 +187,30 @@ function orm_publish_local() {
 function orm_test_local() {
    APTO_ORM_ADDR=$(yq '.profiles.default.account' $config_yaml) || exit 1
 
+   # utilities move test
    cd "move/utilities"
    aptos move test --bytecode-version 6 --named-addresses apto_orm=0x1e51 --ignore-compile-warnings || exit 1
    cd - >> /dev/null
 
+   # apto_orm move test
    cd "move/apto_orm"
    aptos move test --bytecode-version 6 --named-addresses apto_orm=0x1e51 --ignore-compile-warnings || exit 1
    cd - >> /dev/null
 
+   # typescript test
    cd typescript
    pnpm install
    pnpm build
    pnpm test
+   cd - >> /dev/null
+   
+   # server test
+   cd server
+   pnpm install
+   pnpm start:dev &
+   sleep 1s
+   pnpm test
+   cd - >> /dev/null
 }
 
 current_dir=${PWD}

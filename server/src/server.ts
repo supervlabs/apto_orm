@@ -37,7 +37,7 @@ if (process.env.PAYER_PRIVATE_KEY) {
   const privateKey = new Ed25519PrivateKey(process.env.PAYER_PRIVATE_KEY);
   payer = Account.fromPrivateKey({ privateKey });
 } else {
-  payer = loadAccountFromPrivatekeyFile(process.env.PAYER || "./.key/payer");
+  payer = loadAccountFromPrivatekeyFile(process.env.PAYER || "../.key/payer");
 }
 
 console.log("Payer address:", payer.accountAddress.toString());
