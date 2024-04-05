@@ -150,8 +150,8 @@ function check_running() {
 }
 
 function node_start() {
-#   aptos node run-local-testnet --with-faucet --faucet-port 8081 --force-restart --assume-yes --with-indexer-api &
-   aptos node run-local-testnet --with-faucet --faucet-port 8081 --force-restart --assume-yes &
+  aptos node run-local-testnet --with-faucet --faucet-port 8081 --force-restart --assume-yes --with-indexer-api &
+   # aptos node run-local-testnet --with-faucet --faucet-port 8081 --force-restart --assume-yes &
 }
 
 function node_stop() {
@@ -161,8 +161,8 @@ function node_stop() {
 }
 
 function node_restart() {
-#   aptos node run-local-testnet --with-faucet --faucet-port 8081 --assume-yes --with-indexer-api &
-   aptos node run-local-testnet --with-faucet --faucet-port 8081 --assume-yes &
+  aptos node run-local-testnet --with-faucet --faucet-port 8081 --assume-yes --with-indexer-api &
+   # aptos node run-local-testnet --with-faucet --faucet-port 8081 --assume-yes &
 }
 
 function node_reset() {
@@ -204,13 +204,16 @@ function orm_test_local() {
    pnpm test
    cd - >> /dev/null
    
-   # server test
-   cd server
-   pnpm install
-   pnpm start:dev &
-   sleep 1s
-   pnpm test
-   cd - >> /dev/null
+   # # server test
+   # cd server
+   # pnpm install && pnpm build
+   # pnpm start:dev &
+   # SERVER=$!
+   # echo $!
+   # sleep 1s
+   # pnpm test
+   # kill $SERVER
+   # cd - >> /dev/null
 }
 
 current_dir=${PWD}

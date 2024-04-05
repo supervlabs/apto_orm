@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import express, { NextFunction, Request } from "express";
 import asyncify from "express-asyncify";
 import cors from "cors";
@@ -17,9 +18,9 @@ import {
 } from "apto_orm";
 import { AptosApiError, Ed25519PrivateKey } from "@aptos-labs/ts-sdk";
 
-if (!process.env.APTOS_NODE_URL) {
-  throw new Error("APTOS_NODE_URL not specified");
-}
+// if (!process.env.APTOS_NODE_URL) {
+//   throw new Error("APTOS_NODE_URL not specified");
+// }
 
 const port = 5678;
 const app = asyncify(express());
