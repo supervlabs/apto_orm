@@ -374,6 +374,17 @@ module apto_orm::orm_object {
         object::transfer_with_ref(linear_ref, to);
     }
 
+    public entry fun batch_transfer_forcibly(
+        creator_or_owner: &signer,
+        objects: vector<address>,
+        to: address,
+    ) acquires OrmObject {
+        vector::for_each_ref(&objects, |object_address| {
+            let obj = object::address_to_object<OrmToken>(*object_address);
+            transfer_forcibly(creator_or_owner, obj, to);
+        });
+    }
+
     public fun init_properties(
         ref: &ConstructorRef,
         property_keys: vector<String>,

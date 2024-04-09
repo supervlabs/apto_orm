@@ -1,6 +1,6 @@
 module apto_orm::object_utility {
     use std::error;
-
+    use std::vector;
     use aptos_framework::account;
     use aptos_framework::object::{Self, Object};
 
@@ -12,6 +12,24 @@ module apto_orm::object_utility {
 
     /// invalid owner of the object
     const EOWNER_NOT_FOUND: u64 = 1;
+
+    public fun transfer_object(
+        owner: &signer,
+        object: address,
+        to: address,
+     ) {
+        object::transfer_raw(owner, object, to);
+    }
+
+    public fun batch_transfer_objects(
+        owner: &signer,
+        objects: vector<address>,
+        to: address,
+     ) {
+        vector::for_each_ref(&objects, |obj| {
+            object::transfer_raw(owner, *obj, to);
+        });
+    }
 
     #[view]
     public fun owner<T: key>(object: Object<T>): address {
