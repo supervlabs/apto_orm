@@ -41,7 +41,7 @@ generate_env() {
       echo "set -a"
       echo "APTOS_NETWORK=$1"
       echo "APTOS_NODE_URL=$(yq '.profiles.default.rest_url' $config_yaml)"
-      echo "APTOS_FAUCET_URL=$(yq '.profiles.default.faucet_url' $config_yaml)"
+      [ "x$1" == "xmainnet" ] || echo "APTOS_FAUCET_URL=$(yq '.profiles.default.faucet_url' $config_yaml)"
       echo "APTO_ORM_ADDR=$(yq '.profiles.default.account' $config_yaml)"
       echo "set +a"
    } >> .env
@@ -63,6 +63,8 @@ create_account() {
    [ -z "$2" ] && NETWORK=local
    aptos init --assume-yes --network "$NETWORK" --profile "$1" --private-key-file ".key/$1" >> /dev/null  2>&1
    [ $? -ne 0 ] && echo failed to account init $1 && exit 1
+   [ "x$1" == "xmainnet" ] && exit 0
+   # fund account
    if [ "$1" == "default" ]; then
       aptos account fund-with-faucet --account "$1" --amount 10000000000000 >> /dev/null 2>&1
       [ $? -ne 0 ] && echo failed to fund default account && exit 1
@@ -132,58 +134,96 @@ publish_move() {
    cd - >> /dev/null
 }
 
-_check_move_package2() {
-   [ -z "$1" ] && {
-      echo package not specified
-      exit 1
-   }
-   [ -f "$1/Move.toml" ] || {
-      echo $1/Move.toml not found
-      exit 1
-   }
-   [ -z "$APTO_ORM_ADDR" ] && {
-      echo \$APTO_ORM_ADDR not configured
-      exit 1
-   }
+function check_running() {
+   sleep 1s
+   while :
+   do
+      sleep 1s
+      ready=$(curl -s http://localhost:8081)
+      if [[ $ready == "tap:ok" ]];
+      then
+         echo -e "> running ... ok!"
+         break
+      fi
+   done
+   sleep 1s
 }
 
-compile_move2() {
-   _check_move_package2 "$1"
-   cd "$1"
-   aptos move compile --bytecode-version 6 --save-metadata --named-addresses apto_orm=$APTO_ORM_ADDR
+function node_start() {
+  aptos node run-local-testnet --with-faucet --faucet-port 8081 --force-restart --assume-yes --with-indexer-api &
+   # aptos node run-local-testnet --with-faucet --faucet-port 8081 --force-restart --assume-yes &
+}
+
+function node_stop() {
+  killall -q aptos >> /dev/null 2>&1
+  docker kill local-testnet-indexer-api >> /dev/null 2>&1
+  docker kill local-testnet-postgres >> /dev/null 2>&1
+}
+
+function node_restart() {
+  aptos node run-local-testnet --with-faucet --faucet-port 8081 --assume-yes --with-indexer-api &
+   # aptos node run-local-testnet --with-faucet --faucet-port 8081 --assume-yes &
+}
+
+function node_reset() {
+  node_stop
+  rm -rf $(find .aptos -maxdepth 1 -mindepth 1 -name "*" ! -name "config.yaml")
+}
+
+function orm_publish_local() {
+   APTO_ORM_ADDR=$(yq '.profiles.default.account' $config_yaml) || exit 1
+
+   cd "move/utilities"
+   aptos move publish  --assume-yes --bytecode-version 6 --private-key-file ../../.key/default \
+   --url http://localhost:8080 --named-addresses apto_orm=$APTO_ORM_ADDR || exit 1
+   cd - >> /dev/null
+
+   cd "move/apto_orm"
+   aptos move publish  --assume-yes --bytecode-version 6 --private-key-file ../../.key/default \
+   --url http://localhost:8080 --named-addresses apto_orm=$APTO_ORM_ADDR || exit 1
    cd - >> /dev/null
 }
 
-setup_test() {
-   docker build --target apto_orm-testing -t apto_orm-testing .
-}
+function orm_test_local() {
+   APTO_ORM_ADDR=$(yq '.profiles.default.account' $config_yaml) || exit 1
 
-setup() {
-   docker kill apto_orm >> /dev/null 2>&1
-   docker rm -f apto_orm >> /dev/null 2>&1
-   docker build -t apto_orm . && \
+   # utilities move test
+   cd "move/utilities"
+   aptos move test --bytecode-version 6 --named-addresses apto_orm=0x1e51 --ignore-compile-warnings || exit 1
+   cd - >> /dev/null
+
+   # apto_orm move test
+   cd "move/apto_orm"
+   aptos move test --bytecode-version 6 --named-addresses apto_orm=0x1e51 --ignore-compile-warnings || exit 1
+   cd - >> /dev/null
+
+   # typescript test
+   cd typescript
+   pnpm install
+   pnpm build
+   pnpm test
+   cd - >> /dev/null
    
-   docker run -d -p 8070:8070 -p 8080-8082:8080-8082 -p 9101:9101 -p 50051:50051 -p 5678:5678 --name apto_orm apto_orm && \
-   sleep 3 && \
-   curl http://localhost:8082/download.sh | sh
-}
-
-setup_without_fee_free_server() {
-   docker kill apto_orm >> /dev/null 2>&1
-   docker rm -f apto_orm >> /dev/null 2>&1
-   docker build -t apto_orm . && \
-   docker run -d -p 8080-8082:8080-8082 -p 9101:9101 -p 50051:50051 --name apto_orm apto_orm && \
-   sleep 3 && \
-   curl http://localhost:8082/download.sh | sh
+   # # server test
+   # cd server
+   # pnpm install && pnpm build
+   # pnpm start:dev &
+   # SERVER=$!
+   # echo $!
+   # sleep 1s
+   # pnpm test
+   # kill $SERVER
+   # cd - >> /dev/null
 }
 
 current_dir=${PWD}
 cd "$project_dir"
 case $1 in
-   start) aptos node run-local-testnet --with-faucet --faucet-port 8081 --force-restart --assume-yes &;;
-   restart) aptos node run-local-testnet --with-faucet --faucet-port 8081 --assume-yes &;;
-   stop) killall -q aptos >> /dev/null 2>&1;;
-   rm) killall -q aptos >> /dev/null 2>&1 && rm -rf $(find .aptos -maxdepth 1 -mindepth 1 -name "*" ! -name "config.yaml");;
+   start) node_start && check_running && create_accounts local && orm_publish_local;;
+   restart) node_restart;;
+   stop) node_stop;;
+   reset) node_reset;;
+   test) orm_test_local;;
    *) "$@";;
 esac
 cd "$current_dir" >> /dev/null

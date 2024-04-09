@@ -20,7 +20,6 @@ export function loadPackageAddress(program: Command) {
       let package_owner: Account;
       if (key) {
         package_owner = loadAccountFromPrivatekeyFile(key);
-        console.log('!!!!');
         package_address = getPackageAddress(package_owner.accountAddress, package_name);
       } else {
         if (!package_creator) package_creator = getOrmPackageCreator(package_name);
