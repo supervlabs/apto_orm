@@ -13,7 +13,7 @@ module apto_orm::object_utility {
     /// invalid owner of the object
     const EOWNER_NOT_FOUND: u64 = 1;
 
-    public fun transfer_object(
+    public entry fun transfer_object(
         owner: &signer,
         object: address,
         to: address,
@@ -21,7 +21,7 @@ module apto_orm::object_utility {
         object::transfer_raw(owner, object, to);
     }
 
-    public fun batch_transfer_objects(
+    public entry fun batch_transfer_objects(
         owner: &signer,
         objects: vector<address>,
         to: address,
