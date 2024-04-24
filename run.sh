@@ -78,19 +78,20 @@ create_account() {
 
 compile() {
    for f in $(find move -maxdepth 1 -mindepth 1 -type d); do
-      compile_move "${f#move/}"
+      compile_move "$f"
+      # compile_move "${f#move/}"
    done
 }
 
 test() {
    for f in $(find move -maxdepth 1 -mindepth 1 -type d); do
-      test_move "${f#move/}"
+      test_move "$f"
    done
 }
 
 publish() {
-   publish_move utilities
-   publish_move apto_orm
+   publish_move move/utilities
+   publish_move move/apto_orm
 }
 
 clean() {
@@ -102,8 +103,8 @@ _check_move_package() {
       echo package not specified
       exit 1
    }
-   [ -d "move/$1" ] || {
-      echo move/$1 not found
+   [ -d "$1" ] || {
+      echo $1 not found
       exit 1
    }
    [ -z "$APTO_ORM_ADDR" ] && {
@@ -113,22 +114,22 @@ _check_move_package() {
 }
 
 compile_move() {
-   _check_move_package "$1"
-   cd "move/$1"
+   _check_move_package $1
+   cd $1
    aptos move compile --bytecode-version 6 --save-metadata --named-addresses apto_orm=$APTO_ORM_ADDR
    cd - >> /dev/null
 }
 
 test_move() {
-   _check_move_package "$1"
-   cd "move/$1"
+   _check_move_package $1
+   cd $1
    aptos move test --bytecode-version 6 --named-addresses apto_orm=0x1e51 --ignore-compile-warnings || exit 1
    cd - >> /dev/null
 }
 
 publish_move() {
-   _check_move_package "$1"
-   cd "move/$1" || { echo move/$1 not found; exit 1; }
+   _check_move_package $1
+   cd $1 || { echo "$1 not found"; exit 1; }
    # aptos move publish --override-size-check --bytecode-version 6 --profile default --named-addresses apto_orm=$APTO_ORM_ADDR --assume-yes
    aptos move publish --bytecode-version 6 --profile default --named-addresses apto_orm=$APTO_ORM_ADDR --assume-yes || exit 1
    cd - >> /dev/null
