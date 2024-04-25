@@ -64,7 +64,7 @@ module apto_orm::utilities {
     public entry fun test_str_to_rational_number() {
         use std::fixed_point32::get_raw_value;
         use std::fixed_point32::floor;
-        use std::fixed_point32::multiply_u64;
+        // use std::fixed_point32::multiply_u64;
         use std::debug;
         let (numerator, denominator) = str_to_rational_number(&string::utf8(b"123.456"));
         assert!(denominator == 1000u64, 0x1);
