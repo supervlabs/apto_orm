@@ -407,6 +407,14 @@ module apto_orm::orm_class {
     // }
 
     #[view]
+    public fun has_class_signer<T: key>(
+        class: Object<T>
+    ): bool {
+        let class_address = object::object_address(&class);
+        exists<OrmClassSigner>(class_address)
+    }
+
+    #[view]
     public fun get_creator<T: key>(class: Object<T>): Object<OrmCreator> acquires OrmClass {
         let class = borrow_class(&class);
         class.creator
