@@ -121,24 +121,26 @@ module apto_orm::orm_creator {
         owner: &signer, creator_obj: Object<OrmCreator>
     ): OrmCreatorCapability {
         let owner_address = signer::address_of(owner);
+        let orm_creator_address = object::object_address(&creator_obj);
         assert!(
-            object::owner(creator_obj) == owner_address,
+            object::owner(creator_obj) == owner_address ||
+            orm_creator_address == owner_address,
             error::permission_denied(ENOT_AUTHORIZED_OWNER),
         );
-        OrmCreatorCapability { inner: object::object_address(&creator_obj) }
+        OrmCreatorCapability { inner: orm_creator_address }
     }
 
     public fun load_creator_by_capability (
         capability: &OrmCreatorCapability
-    ) acquires OrmCreator {
+    ): signer acquires OrmCreator {
         assert!(
             exists<OrmCreator>(capability.inner),
             error::not_found(ENOT_SIGNER_OBJECT),
         );
-        let orm_crator_object = object::address_to_object<OrmCreator>(capability.inner);
-        power_of_attorney::check_paused(object::owner(orm_crator_object));
+        let orm_creator_obj = object::address_to_object<OrmCreator>(capability.inner);
+        power_of_attorney::check_paused(object::owner(orm_creator_obj));
         let orm_creator = borrow_global<OrmCreator>(capability.inner);
-        object::generate_signer_for_extending(&orm_creator.extend_ref);
+        object::generate_signer_for_extending(&orm_creator.extend_ref)
     }
 
     // public fun load_creator_by_ticket<phantom ProofChallenge>() {} // TODO
