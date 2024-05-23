@@ -12,7 +12,7 @@ module apto_orm::orm_creator {
     use aptos_framework::aptos_account;
     use apto_orm::power_of_attorney;
 
-    const ENOT_SIGNER_OBJECT: u64 = 1;
+    const ENOT_ORM_CREATOR_OBJECT: u64 = 1;
     const ENOT_AUTHORIZED_OWNER: u64 = 2;
     const EDELEGATE_EXPIRED: u64 = 3;
     const ESIGN_FUNCTIONARITY_PAUSED: u64 = 4;
@@ -33,7 +33,7 @@ module apto_orm::orm_creator {
         let object_address = object::object_address(object);
         assert!(
             exists<OrmCreator>(object_address),
-            error::not_found(ENOT_SIGNER_OBJECT),
+            error::not_found(ENOT_ORM_CREATOR_OBJECT),
         );
         power_of_attorney::check_authorized(object, owner);
         borrow_global<OrmCreator>(object_address)
@@ -43,7 +43,7 @@ module apto_orm::orm_creator {
         let object_address = object::object_address(object);
         assert!(
             exists<OrmCreator>(object_address),
-            error::not_found(ENOT_SIGNER_OBJECT),
+            error::not_found(ENOT_ORM_CREATOR_OBJECT),
         );
         power_of_attorney::check_paused(object_address);
         borrow_global<OrmCreator>(object_address)
@@ -102,6 +102,11 @@ module apto_orm::orm_creator {
         object::create_object_address(&owner, seed)
     }
 
+    #[view]
+    public fun is_creator(creator_address: address): bool {
+        exists<OrmCreator>(creator_address)
+    }
+
     public entry fun transfer_coins<T: key, CoinType>(
         owner: &signer,
         from: Object<T>,
@@ -135,7 +140,7 @@ module apto_orm::orm_creator {
     ): signer acquires OrmCreator {
         assert!(
             exists<OrmCreator>(capability.inner),
-            error::not_found(ENOT_SIGNER_OBJECT),
+            error::not_found(ENOT_ORM_CREATOR_OBJECT),
         );
         let orm_creator_obj = object::address_to_object<OrmCreator>(capability.inner);
         power_of_attorney::check_paused(object::owner(orm_creator_obj));
