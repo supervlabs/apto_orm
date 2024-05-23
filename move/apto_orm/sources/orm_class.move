@@ -188,7 +188,7 @@ module apto_orm::orm_class {
         );
     }
 
-    public fun record_event(
+    public fun set_event(
         creator: &signer, class: Object<OrmClass>, object: address, event_type: String
     ) acquires OrmClass {
         let creator_address = signer::address_of(creator);
