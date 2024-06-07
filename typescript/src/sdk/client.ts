@@ -54,12 +54,9 @@ export class OrmClient extends Aptos {
         _config = new AptosConfig({ network: Network.MAINNET });
       } else if (lowcase === 'devnet') {
         _config = new AptosConfig({ network: Network.DEVNET });
-      } else if (lowcase === 'randomnet' || lowcase === 'random' || lowcase === 'randnet') {
-        _config = new AptosConfig({ network: Network.RANDOMNET });
       } else if (lowcase === 'local') {
         _config = new AptosConfig({ network: Network.LOCAL });
       } else {
-        // _config = new AptosConfig({ fullnode: config });
         throw new Error('Target network or config is not defined');
       }
     } else if (typeof config === 'object') {

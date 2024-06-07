@@ -12,7 +12,7 @@ import orm, {
   loadAccountFromPrivatekeyFile,
   toAddress,
 } from '../sdk';
-import { Account } from '@aptos-labs/ts-sdk';
+import { Account, Ed25519Account  } from '@aptos-labs/ts-sdk';
 
 import { loadBaseObjectString, loadBaseTokenString } from './classes';
 import { loadOrmClient, checkPackagePath, loadPackageClasses, getNodeUrl } from './utilities';
@@ -46,15 +46,16 @@ program
       if (fs.existsSync(path.resolve(process.cwd(), `.key/${random_key}`))) {
         account = loadAccountFromPrivatekeyFile(`.key/${random_key}`);
       } else {
-        account = Account.generate();
+        let ed25519 = Ed25519Account.generate();
+        account = ed25519;
         const dotkey = path.resolve(process.cwd(), `.key`);
         if (!fs.existsSync(dotkey)) {
           fs.mkdirSync(dotkey, { recursive: true });
         }
-        fs.writeFileSync(path.resolve(dotkey, `${random_key}`), account.privateKey.toString().toUpperCase().slice(2));
+        fs.writeFileSync(path.resolve(dotkey, `${random_key}`), ed25519.privateKey.toString().toUpperCase().slice(2));
         fs.writeFileSync(
           path.resolve(dotkey, `${random_key}.pub`),
-          account.publicKey.toString().toUpperCase().slice(2)
+          ed25519.publicKey.toString().toUpperCase().slice(2)
         );
         console.log(`The package key file is generated to ${path.resolve(dotkey, `${random_key}`)}.`);
       }
@@ -79,7 +80,7 @@ program
     let package_path: string = this.args[0];
     const [_package_path, package_name] = checkPackagePath(package_path);
     package_path = _package_path;
-    let package_owner: Account;
+    let package_owner: Ed25519Account;
     if (key) {
       package_owner = loadAccountFromPrivatekeyFile(key);
     } else if (random_key) {
