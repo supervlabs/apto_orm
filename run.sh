@@ -40,8 +40,6 @@ generate_env() {
    {
       echo "set -a"
       echo "APTOS_NETWORK=$1"
-      echo "APTOS_NODE_URL=$(yq '.profiles.default.rest_url' $config_yaml)"
-      [ "x$1" == "xmainnet" ] || echo "APTOS_FAUCET_URL=$(yq '.profiles.default.faucet_url' $config_yaml)"
       echo "APTO_ORM_ADDR=$(yq '.profiles.default.account' $config_yaml)"
       echo "set +a"
    } >> .env

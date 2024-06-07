@@ -238,7 +238,7 @@ export async function publishPackageTxns(
   // const modules: any[] = [];
   const modules_bytes: Uint8Array[] = [];
   const _metadata = fs.readFileSync(mpath);
-  const mbytes = Hex.fromString(_metadata.toString('hex')).toUint8Array();
+  const mbytes = Hex.fromHexString(_metadata.toString('hex')).toUint8Array();
   // let total_size = mbytes.length;
   const files = retrieveFilesInDir(path.join(package_move_path, 'build', packageName, 'bytecode_modules'), [
     'dependencies',
@@ -250,7 +250,7 @@ export async function publishPackageTxns(
   }
   for (const file of files) {
     const moduleData = fs.readFileSync(file);
-    const moduleBytes = Hex.fromString(moduleData.toString('hex')).toUint8Array();
+    const moduleBytes = Hex.fromHexString(moduleData.toString('hex')).toUint8Array();
     // total_size += moduleBytes.length;
     // modules.push(new TxnBuilderTypes.Module(moduleBytes));
     modules_bytes.push(moduleBytes);
