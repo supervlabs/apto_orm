@@ -8,6 +8,7 @@ import {
   Account,
   Ed25519PrivateKey,
   GenerateAccount,
+  Ed25519Account,
 } from '@aptos-labs/ts-sdk';
 import {
   OrmObjectConfig,
@@ -56,7 +57,7 @@ export function retrieveFilesInDir(dir: string, excluded: string[]) {
   return found;
 }
 
-export function loadAccountFromPrivatekeyFile(filepath: string): Account {
+export function loadAccountFromPrivatekeyFile(filepath: string): Ed25519Account {
   const keyStr = fs.readFileSync(filepath, 'utf8');
   const privateKey = new Ed25519PrivateKey(keyStr);
   return Account.fromPrivateKey({ privateKey });
@@ -183,7 +184,7 @@ export function hexEncodedBytesToUint8Array(b: string) {
     return new Uint8Array(0);
   }
   try {
-    return Hex.fromString(b).toUint8Array();
+    return Hex.fromHexString(b).toUint8Array();
   } catch (err) {
     throw new Error(`invalid hex-encoded bytes: ${b}`);
   }

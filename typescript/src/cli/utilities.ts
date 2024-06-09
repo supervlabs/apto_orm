@@ -1,12 +1,11 @@
 import { Command } from 'commander';
 import fs from 'fs';
 import path from 'path';
-import { OrmClient, OrmFreePostpayClient, OrmFreePrepayClient, getOrmClass, getOrmClasses } from '../sdk';
+import { OrmClient, getOrmClass, getOrmClasses } from '../sdk';
 import { AptosConfig } from '@aptos-labs/ts-sdk';
 
 export function loadOrmClient(program: Command) {
-  const { network, node_url, node_api_key, node_headers, prepay_url, postpay_url, fee_free_headers } =
-    program.optsWithGlobals();
+  const { network, node_api_key, node_headers } = program.optsWithGlobals();
   const api_key = node_api_key || process.env.APTOS_NODE_API_KEY;
   const headers: any = {};
   (node_headers || process.env.APTOS_NODE_HEADERS || []).map((h: string) => {
@@ -15,28 +14,9 @@ export function loadOrmClient(program: Command) {
   });
   const config = new AptosConfig({
     network: network || (process.env.APTOS_NETWORK as any),
-    fullnode: node_url,
     clientConfig: api_key && headers.length > 0 ? { API_KEY: api_key, HEADERS: headers } : undefined,
   });
-  if (prepay_url)
-    return new OrmFreePrepayClient(config, {
-      url: prepay_url,
-      header: fee_free_headers,
-    });
-  else if (postpay_url)
-    return new OrmFreePostpayClient(config, {
-      url: postpay_url,
-      header: fee_free_headers,
-    });
   return new OrmClient(config);
-}
-
-export function getNodeUrl(program: Command) {
-  const { node_url } = program.optsWithGlobals();
-  if (!node_url) {
-    throw new Error('node_url not specified in cli or env $APTOS_NODE_URL');
-  }
-  return node_url;
 }
 
 export function checkPackagePath(package_path: string) {

@@ -4,18 +4,16 @@ import fs from 'fs';
 import path from 'path';
 import YAML from 'yaml';
 import orm, {
-  OrmFreePostpayClient,
-  OrmFreePrepayClient,
   getOrmPackageCreator,
   getPackageAddress,
   getShortAddress,
   loadAccountFromPrivatekeyFile,
   toAddress,
 } from '../sdk';
-import { Account } from '@aptos-labs/ts-sdk';
+import { Account, Ed25519Account } from '@aptos-labs/ts-sdk';
 
 import { loadBaseObjectString, loadBaseTokenString } from './classes';
-import { loadOrmClient, checkPackagePath, loadPackageClasses, getNodeUrl } from './utilities';
+import { loadOrmClient, checkPackagePath, loadPackageClasses } from './utilities';
 import { poa } from './poa';
 import { loadPackageAddress, retrieve } from './retrieve';
 
@@ -23,46 +21,6 @@ export const program = new Command();
 program.name('apto_orm');
 program.description('Aptos Onchain Move ORM (Object–relational mapping)');
 program.option('-n, --network <network>', 'The Aptos network to connect to');
-program.option('  , --node_url <node_url>', 'Aptos Node URL');
-program.option('  , --prepay_url <prepay_url>', 'The free prepay URL');
-program.option('  , --postpay_url <postpay_url>', 'The free postpay URL');
-
-program
-  .command('create-account')
-  .description('Create a new Aptos account for package owner')
-  .option('-k, --key <key_file>', 'The private key file of the package owner')
-  .option('-r, --random_key <key_name>', 'Randomly generate the private key file of the package owner')
-  // .option('-f, --fund', 'Request to fund Aptos Coin for AptoORM operation', false)
-  .action(async function () {
-    const client = loadOrmClient(program);
-    if (!(client instanceof OrmFreePrepayClient) && !(client instanceof OrmFreePostpayClient)) {
-      throw new Error('create-account is only supported in free prepay/postpay mode');
-    }
-    const { random_key, key } = this.opts();
-    let account: Account;
-    if (key) {
-      account = loadAccountFromPrivatekeyFile(key);
-    } else if (random_key) {
-      if (fs.existsSync(path.resolve(process.cwd(), `.key/${random_key}`))) {
-        account = loadAccountFromPrivatekeyFile(`.key/${random_key}`);
-      } else {
-        account = Account.generate();
-        const dotkey = path.resolve(process.cwd(), `.key`);
-        if (!fs.existsSync(dotkey)) {
-          fs.mkdirSync(dotkey, { recursive: true });
-        }
-        fs.writeFileSync(path.resolve(dotkey, `${random_key}`), account.privateKey.toString().toUpperCase().slice(2));
-        fs.writeFileSync(
-          path.resolve(dotkey, `${random_key}.pub`),
-          account.publicKey.toString().toUpperCase().slice(2)
-        );
-        console.log(`The package key file is generated to ${path.resolve(dotkey, `${random_key}`)}.`);
-      }
-    }
-    const pending = await client.createAccount(account.accountAddress);
-    const txnr = await client.waitForOrmTxnWithResult(pending, { timeoutSecs: 30, checkSuccess: true });
-    console.log(`txn: ${txnr.hash}`);
-  });
 
 program
   .command('init')
@@ -79,7 +37,7 @@ program
     let package_path: string = this.args[0];
     const [_package_path, package_name] = checkPackagePath(package_path);
     package_path = _package_path;
-    let package_owner: Account;
+    let package_owner: Ed25519Account;
     if (key) {
       package_owner = loadAccountFromPrivatekeyFile(key);
     } else if (random_key) {
@@ -126,7 +84,6 @@ program
         private_key: package_owner.privateKey.toString(),
         public_key: package_owner.publicKey.toString(),
         account: toAddress(package_creator).toString(),
-        rest_url: getNodeUrl(program),
       };
       fs.writeFileSync(path.resolve(dotaptos, `config.yaml`), '---\n' + YAML.stringify(content));
     }
@@ -466,25 +423,10 @@ program
   .description('Change the royalty of all the target objects')
   .requiredOption('-c, --collection <address>', 'The collection address')
   .requiredOption('-p, --payee <address>', 'The royalty payee address')
-  .requiredOption(
-    '  , --denominator <denominator>',
-    'The denominator of the royalty',
-    '100',
-  )
-  .requiredOption(
-    '  , --numerator <numerator>',
-    'The numerator of the royalty',
-    '5',
-  )
-  .option(
-    '  , --offset <offset>',
-    'Offset to start from',
-    '0',
-  )
-  .requiredOption(
-    '-k, --key <key_file>',
-    'The private key file of the package owner',
-  )
+  .requiredOption('  , --denominator <denominator>', 'The denominator of the royalty', '100')
+  .requiredOption('  , --numerator <numerator>', 'The numerator of the royalty', '5')
+  .option('  , --offset <offset>', 'Offset to start from', '0')
+  .requiredOption('-k, --key <key_file>', 'The private key file of the package owner')
   .action(async function () {
     const client = loadOrmClient(program);
     const { key, collection, payee, denominator, numerator, offset } = this.optsWithGlobals();
@@ -519,17 +461,9 @@ program
       const txn = await client.generateOrmTxn([owner], {
         function: `${client.ormAddress}::orm_object::batch_set_royalty`,
         typeArguments: [],
-        functionArguments: [
-          tokenAddrs,
-          payeeAddr,
-          denominator,
-          numerator,
-        ],
+        functionArguments: [tokenAddrs, payeeAddr, denominator, numerator],
       });
-      const txnr = await client.signSubmitAndWaitOrmTxnWithResult(
-        [owner],
-        txn,
-      );
+      const txnr = await client.signSubmitAndWaitOrmTxnWithResult([owner], txn);
       console.log(`offset=${_offset} ${txnr.hash}, ${txnr.success}`);
       if (r.current_token_datas_v2.length < limit) break;
       _offset += limit;

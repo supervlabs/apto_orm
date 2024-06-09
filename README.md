@@ -22,7 +22,6 @@ Furthermore, `AptoORM` can be a framework to create, mint NFT on Aptos Blockchai
 - [x] Add `index_fields` option to `OrmClass` and `OrmField` in order to Aptos create named object.
 - [x] Add `package` configuration
 - [x] Add default `royalty_payee` to class object.
-- [x] Add `OrmFreePrepayClient`, `OrmFreePostpayClient` for free transaction fee interface.
 - [x] Add `PoA` typescript API
 - [x] Add `create_to` (create and send an object) API
 - [ ] Add `royalty_present_per_token` to represent the royalty to each token.
