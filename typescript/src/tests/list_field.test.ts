@@ -25,7 +25,7 @@ export class PostObject {
   @OrmField({ type: 'u32' })
   like!: number;
 
-  @OrmField({ type: 'vector<address>'})
+  @OrmField({ type: 'vector<address>' })
   addresses!: string[];
 
   constructor(fields?: Partial<PostObject>) {
