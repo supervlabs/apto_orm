@@ -9,7 +9,7 @@ import { generateMove } from './gen-move';
 import { generateToml } from './gen-toml';
 import { getOrmClassMetadata } from './metadata';
 
-const MAXIMUM_TRANSACTION_SIZE = 40000;
+const MAXIMUM_TRANSACTION_SIZE = 62000;
 
 export async function createPackageTxn(
   client: OrmClient,
