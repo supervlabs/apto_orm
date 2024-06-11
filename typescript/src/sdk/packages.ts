@@ -9,7 +9,7 @@ import { generateMove } from './gen-move';
 import { generateToml } from './gen-toml';
 import { getOrmClassMetadata } from './metadata';
 
-const MAXIMUM_TRANSACTION_SIZE = 62000;
+const MAXIMUM_TRANSACTION_SIZE = 40000;
 
 export async function createPackageTxn(
   client: OrmClient,
@@ -295,6 +295,7 @@ export async function publishPackageTxns(
         false,
         cleanup(),
         {
+          maxGasAmount: options?.maxGasAmount,
           accountSequenceNumber: seq++,
           payer: options?.payer,
         }
@@ -325,6 +326,7 @@ export async function publishPackageTxns(
             false,
             cleanup(),
             {
+              maxGasAmount: options?.maxGasAmount,
               accountSequenceNumber: seq++,
               payer: options?.payer,
             }
@@ -356,6 +358,7 @@ export async function publishPackageTxns(
       true,
       cleanup(),
       {
+        maxGasAmount: options?.maxGasAmount,
         accountSequenceNumber: seq++,
         payer: options?.payer,
       }

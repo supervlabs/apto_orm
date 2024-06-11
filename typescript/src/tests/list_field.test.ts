@@ -46,7 +46,7 @@ describe('test the list type fields', () => {
     const client = new orm.OrmClient('local');
 
     // 1. create an package account
-    let txn = await orm.createPackageTxn(client, package_creator, package_name);
+    let txn = await orm.createPackageTxn(client, package_creator, package_name, { maxGasAmount: 1000000});
     let txnr = await client.signSubmitAndWaitOrmTxnWithResult([package_creator], txn);
     console.log('createPackageTxn', txnr.hash);
 
