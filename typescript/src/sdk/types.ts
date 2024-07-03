@@ -231,6 +231,7 @@ export type OrmPackageConfig = {
   package_name: string;
   ormobjs: any[];
   named_addresses?: NamedAddresses;
+  dependencies?: { name: string; git: string; subdir: string; rev: string }[]; // dependencies of the package
   local_apto_orm_package?: string; // path to local package
   modules_publish_order?: string[]; // modules publish order
 };

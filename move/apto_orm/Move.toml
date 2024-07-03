@@ -1,6 +1,7 @@
 [package]
 name = 'AptoORM'
 version = '1.0.0'
+upgrade_policy = "compatible"
 
 [addresses]
 apto_orm = "_"

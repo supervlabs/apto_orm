@@ -176,7 +176,15 @@ export function testPackage(config: Pick<OrmPackageConfig, 'package_move_path' |
 }
 
 export function generatePackage(config: OrmPackageConfig) {
-  const { package_creator, package_name, package_move_path, named_addresses, ormobjs, local_apto_orm_package } = config;
+  const {
+    package_creator,
+    package_name,
+    package_move_path,
+    named_addresses,
+    dependencies,
+    ormobjs,
+    local_apto_orm_package,
+  } = config;
   if (!package_creator) {
     throw new Error('package_creator is required');
   }
@@ -190,7 +198,15 @@ export function generatePackage(config: OrmPackageConfig) {
     throw new Error('package_name should not include `-`');
   }
   const package_address = getPackageAddress(package_creator, package_name);
-  generateToml(package_move_path, package_creator, package_name, package_address, local_apto_orm_package);
+  generateToml(
+    package_move_path,
+    package_creator,
+    package_name,
+    package_address,
+    local_apto_orm_package,
+    dependencies,
+    named_addresses
+  );
   for (const o of ormobjs) {
     const classdata = getOrmClassMetadata(o);
     classdata.named_addresses = named_addresses;

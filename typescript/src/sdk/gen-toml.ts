@@ -1,6 +1,7 @@
 import fs from 'fs';
 import { ensureAddressString, getOrmAddress, snakeToCamel, toAddress } from './utilities';
 import { Account, AccountAddress, AccountAddressInput } from '@aptos-labs/ts-sdk';
+import { NamedAddresses } from './types';
 
 export function generateMoveToml(
   package_path: string,
@@ -16,7 +17,9 @@ export function generateToml(
   package_creator: Account | AccountAddressInput | undefined,
   package_name: string,
   package_address: AccountAddressInput,
-  local_apto_orm_package?: string
+  local_apto_orm_package?: string,
+  dependencies?: { name: string; git: string; subdir: string; rev: string }[],
+  named_addresses?: NamedAddresses
 ) {
   const dpath = package_path;
   const fpath = `${package_path}/Move.toml`;
@@ -27,16 +30,18 @@ export function generateToml(
   const apto_orm_local_package = local_apto_orm_package
     ? `{ local = "${local_apto_orm_package}" }`
     : `{ git = "https://github.com/supervlabs/apto_orm", subdir = "move/apto_orm", rev = "main" }`;
-  const package_creator_str = package_creator ? `package_creator = "${toAddress(package_creator)}"` : ``;
 
-  const movetoml = `[package]
+  let movetoml = `[package]
 name = '${snakeToCamel(package_name, true)}'
 version = '1.0.0'
 
 [addresses]
 apto_orm = "${apto_orm_address}"
 ${package_name} = "${ensureAddressString(package_address)}"
-${package_creator_str}
+`;
+  movetoml += package_creator ? `package_creator = "${toAddress(package_creator)}"` : ``;
+  movetoml += named_addresses ? `\n${Object.keys(named_addresses).map((k) => `${k} = "${named_addresses[k]}"`).join('\n')}` : ``;
+  movetoml += `
 
 [dependencies]
 AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework", rev = "main" }
@@ -44,6 +49,11 @@ AptosToken = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "a
 AptosTokenObjects = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-token-objects", rev = "main" }
 AptoORM = ${apto_orm_local_package}
 `;
+  if (dependencies) {
+    for (const dep of dependencies) {
+      movetoml += `${dep.name} = { git = "${dep.git}", subdir = "${dep.subdir}", rev = "${dep.rev}" }\n`;
+    }
+  }
 
   fs.writeFileSync(fpath, movetoml);
 }

@@ -146,8 +146,10 @@ program
   .description('Generate onchain move codes')
   .argument('<package_path>', 'The AptoORM package path and name')
   .option('-c, --classes [classes...]', 'The class names to be generated')
+  .option('-d, --dependencies [dependencies...]', 'The module dependencies to be included')
+  .option('-a, --addresses [module=addr...]', 'The static named addresses used in the package')
   .action(async function () {
-    const { classes } = this.opts();
+    const { classes, dependencies, addresses } = this.opts();
     let package_path: string = this.args[0];
     const [_package_path, package_name] = checkPackagePath(package_path);
     package_path = _package_path;
@@ -161,6 +163,8 @@ program
       package_name,
       package_move_path: `${package_path}/move`,
       ormobjs: ormclasses,
+      dependencies: dependencies ? JSON.parse(dependencies) : undefined,
+      named_addresses: addresses,
     };
     orm.generatePackage(package_config);
     console.log(`package '${package_name}' generated`);
