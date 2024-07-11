@@ -1,5 +1,5 @@
 import { describe, beforeEach, afterEach, expect, it } from '@jest/globals';
-import orm, { AccountAddress, OrmClass, OrmField, snakeToCamel } from '../sdk';
+import orm, { OrmClass, OrmField, snakeToCamel } from '../sdk';
 import path from 'path';
 import fs from 'fs';
 
@@ -25,7 +25,7 @@ export class PostObject {
   @OrmField({ type: 'u32' })
   like!: number;
 
-  @OrmField({ type: 'vector<address>'})
+  @OrmField({ type: 'vector<address>' })
   addresses!: string[];
 
   constructor(fields?: Partial<PostObject>) {
@@ -46,7 +46,7 @@ describe('test the list type fields', () => {
     const client = new orm.OrmClient('local');
 
     // 1. create an package account
-    let txn = await orm.createPackageTxn(client, package_creator, package_name, { maxGasAmount: 1000000});
+    let txn = await orm.createPackageTxn(client, package_creator, package_name, { maxGasAmount: 1000000 });
     let txnr = await client.signSubmitAndWaitOrmTxnWithResult([package_creator], txn);
     console.log('createPackageTxn', txnr.hash);
 
