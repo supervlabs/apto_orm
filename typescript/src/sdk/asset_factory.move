@@ -3,11 +3,14 @@ module apto_orm_company::asset_factory {
     use apto_orm::orm_creator;
     use apto_orm::orm_module;
     use apto_orm::orm_object;
+    use apto_orm::utilities;
+
     use aptos_framework::object::{Self, Object};
     use aptos_token_objects::token;
     use std::error;
+    use std::vector;
     use std::option::{Self, Option};
-    use std::string::String;
+    use std::string::{Self, String};
 
     const CLASS_NAME: vector<u8> = b"AssetFactory";
     const EMEMBERSHIP_OBJECT_NOT_FOUND: u64 = 1;
@@ -44,9 +47,6 @@ module apto_orm_company::asset_factory {
         indirect_transfer_by_owner: bool,
         extensible_by_creator: bool,
         extensible_by_owner: bool,
-        numbered_token: bool,
-        named_token: bool,
-        named_token_fields: vector<String>,
     ) {
         let orm_creator_obj = object::address_to_object<orm_creator::OrmCreator>(@apto_orm_company);
         let orm_creator_signer = orm_creator::load_creator(package_owner, orm_creator_obj);
@@ -69,15 +69,13 @@ module apto_orm_company::asset_factory {
             collection_royalty_denominator,
             collection_royalty_numerator,
         );
-        orm_class::set_orm_token_class_type(&orm_creator_signer, class_address, 
-            numbered_token, named_token, named_token_fields);
         orm_module::add_class<AssetFactory>(
             &orm_creator_signer,
             class_address,
         );
     }
 
-    fun create_object(
+    fun create_token(
         package_owner: &signer,
         collection_name: String,
         name: String,
@@ -86,19 +84,59 @@ module apto_orm_company::asset_factory {
         property_keys: vector<String>,
         property_types: vector<String>,
         property_values: vector<vector<u8>>,
+        metadata: vector<String>,
         to: Option<address>,
     ): Object<AssetFactory>{
         let orm_creator_obj = object::address_to_object<orm_creator::OrmCreator>(@apto_orm_company);
         let orm_class_obj = orm_class::get_class_object(@apto_orm_company, collection_name);
         let orm_creator_signer = orm_creator::load_creator(package_owner, orm_creator_obj);
-        let ref = token::create(
-            &orm_creator_signer,
-            collection_name,
-            description,
-            name,
-            option::none(),
-            uri,
-        );
+        let numbered_token = false;
+        let named_token = false;
+        if (vector::length(&metadata) >= 1) {
+            let command = vector::borrow(&metadata, 0);
+            if (command == &string::utf8(b"numbered_token")) {
+                numbered_token = true;
+            } else if (command == &string::utf8(b"named_token")) {
+                named_token = true;
+            };
+        };
+        
+        let ref = if (numbered_token) {
+            token::create_numbered_token(
+                &orm_creator_signer,
+                collection_name,
+                description,
+                name,
+                string::utf8(b""),
+                option::none(),
+                uri,
+            )
+        } else if (named_token) {
+            let names = vector::slice(&metadata, 1, vector::length(&metadata)); // remove the first
+            let ref = token::create_named_token(
+                &orm_creator_signer,
+                collection_name,
+                description,
+                utilities::join_str(
+                    &string::utf8(b"::"),
+                    &names,
+                ),
+                option::none(),
+                uri,
+            );
+            let mutator_ref = token::generate_mutator_ref(&ref);
+            token::set_name(&mutator_ref, name);
+            ref
+        } else {
+            token::create(
+                &orm_creator_signer,
+                collection_name,
+                description,
+                name,
+                option::none(),
+                uri,
+            )
+        };
         orm_object::init_properties(
             &ref,
             property_keys,
@@ -114,7 +152,7 @@ module apto_orm_company::asset_factory {
         object::object_from_constructor_ref<AssetFactory>(&ref)
     }
 
-    fun update_object<T: key>(
+    fun update_token<T: key>(
         package_owner: &signer,
         object: Object<T>,
         name: String,
@@ -135,7 +173,7 @@ module apto_orm_company::asset_factory {
         );
     }
 
-    fun delete_object<T: key>(
+    fun delete_token<T: key>(
         package_owner: &signer,
         object: Object<T>,
     ) acquires AssetFactory {
@@ -157,8 +195,9 @@ module apto_orm_company::asset_factory {
         property_keys: vector<String>,
         property_types: vector<String>,
         property_values: vector<vector<u8>>,
+        metadata: vector<String>,
     ) {
-        create_object(
+        create_token(
             package_owner,
             collection_name,
             name,
@@ -167,6 +206,7 @@ module apto_orm_company::asset_factory {
             property_keys,
             property_types,
             property_values,
+            metadata,
             option::none(),
         );
     }
@@ -180,9 +220,10 @@ module apto_orm_company::asset_factory {
         property_keys: vector<String>,
         property_types: vector<String>,
         property_values: vector<vector<u8>>,
+        metadata: vector<String>,
         to: address,
     ) {
-        create_object(
+        create_token(
             package_owner,
             collection_name,
             name,
@@ -191,6 +232,7 @@ module apto_orm_company::asset_factory {
             property_keys,
             property_types,
             property_values,
+            metadata,
             option::some(to),
         );
     }
@@ -204,9 +246,10 @@ module apto_orm_company::asset_factory {
         property_keys: vector<String>,
         property_types: vector<String>,
         property_values: vector<vector<u8>>,
+        _metadata: vector<String>,
     ) {
         let obj = object::address_to_object<AssetFactory>(object);
-        update_object(
+        update_token(
             package_owner,
             obj,
             name,
@@ -221,9 +264,10 @@ module apto_orm_company::asset_factory {
     entry fun delete(
         package_owner: &signer,
         object: address,
+        _metadata: vector<String>,
     ) acquires AssetFactory {
         let obj = object::address_to_object<AssetFactory>(object);
-        delete_object(package_owner, obj);
+        delete_token(package_owner, obj);
     }
 
     #[view]
