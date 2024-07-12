@@ -284,4 +284,7 @@ module apto_orm_company::asset_factory {
     public fun exists_at(object: address): bool {
         exists<AssetFactory>(object)
     }
+
+    // add bulk creation, burn and update...?
+    // preset for default properties
 }
