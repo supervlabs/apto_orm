@@ -12,7 +12,7 @@ module apto_orm::orm_creator {
     use aptos_framework::aptos_account;
     use apto_orm::power_of_attorney;
 
-    const ENOT_SIGNER_OBJECT: u64 = 1;
+    const ENOT_ORM_CREATOR_OBJECT: u64 = 1;
     const ENOT_AUTHORIZED_OWNER: u64 = 2;
     const EDELEGATE_EXPIRED: u64 = 3;
     const ESIGN_FUNCTIONARITY_PAUSED: u64 = 4;
@@ -33,7 +33,7 @@ module apto_orm::orm_creator {
         let object_address = object::object_address(object);
         assert!(
             exists<OrmCreator>(object_address),
-            error::not_found(ENOT_SIGNER_OBJECT),
+            error::not_found(ENOT_ORM_CREATOR_OBJECT),
         );
         power_of_attorney::check_authorized(object, owner);
         borrow_global<OrmCreator>(object_address)
@@ -43,7 +43,7 @@ module apto_orm::orm_creator {
         let object_address = object::object_address(object);
         assert!(
             exists<OrmCreator>(object_address),
-            error::not_found(ENOT_SIGNER_OBJECT),
+            error::not_found(ENOT_ORM_CREATOR_OBJECT),
         );
         power_of_attorney::check_paused(object_address);
         borrow_global<OrmCreator>(object_address)
@@ -102,6 +102,11 @@ module apto_orm::orm_creator {
         object::create_object_address(&owner, seed)
     }
 
+    #[view]
+    public fun is_creator(creator_address: address): bool {
+        exists<OrmCreator>(creator_address)
+    }
+
     public entry fun transfer_coins<T: key, CoinType>(
         owner: &signer,
         from: Object<T>,
@@ -121,24 +126,26 @@ module apto_orm::orm_creator {
         owner: &signer, creator_obj: Object<OrmCreator>
     ): OrmCreatorCapability {
         let owner_address = signer::address_of(owner);
+        let orm_creator_address = object::object_address(&creator_obj);
         assert!(
-            object::owner(creator_obj) == owner_address,
+            object::owner(creator_obj) == owner_address ||
+            orm_creator_address == owner_address,
             error::permission_denied(ENOT_AUTHORIZED_OWNER),
         );
-        OrmCreatorCapability { inner: object::object_address(&creator_obj) }
+        OrmCreatorCapability { inner: orm_creator_address }
     }
 
     public fun load_creator_by_capability (
         capability: &OrmCreatorCapability
-    ) acquires OrmCreator {
+    ): signer acquires OrmCreator {
         assert!(
             exists<OrmCreator>(capability.inner),
-            error::not_found(ENOT_SIGNER_OBJECT),
+            error::not_found(ENOT_ORM_CREATOR_OBJECT),
         );
-        let orm_crator_object = object::address_to_object<OrmCreator>(capability.inner);
-        power_of_attorney::check_paused(object::owner(orm_crator_object));
+        let orm_creator_obj = object::address_to_object<OrmCreator>(capability.inner);
+        power_of_attorney::check_paused(object::owner(orm_creator_obj));
         let orm_creator = borrow_global<OrmCreator>(capability.inner);
-        object::generate_signer_for_extending(&orm_creator.extend_ref);
+        object::generate_signer_for_extending(&orm_creator.extend_ref)
     }
 
     // public fun load_creator_by_ticket<phantom ProofChallenge>() {} // TODO

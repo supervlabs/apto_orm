@@ -23,6 +23,7 @@ module apto_orm::orm_class {
     const EORM_CLASS_NOT_FOUND: u64 = 3;
     const EORM_COLLECTION_NOT_FOUND: u64 = 4;
     const EORM_CLASS_SIGNER_NOT_FOUND: u64 = 5;
+    const ENOT_ORM_CREATOR_OBJECT: u64 = 6;
 
     struct OrmEvent has drop, store {
         object: address,
@@ -184,6 +185,27 @@ module apto_orm::orm_class {
         let c = borrow_global_mut<OrmClass>(class_address);
         event::emit_event(&mut c.events,
             OrmEvent { object, type: c.type, event_type },
+        );
+    }
+
+    public fun set_event(
+        creator: &signer, class: Object<OrmClass>, object: address, event_type: String
+    ) acquires OrmClass {
+        let creator_address = signer::address_of(creator);
+        assert!(
+            orm_creator::is_creator(creator_address),
+            error::invalid_argument(ENOT_ORM_CREATOR_OBJECT)
+        );
+        let class_address = object::object_address(&class);
+        let c = borrow_global_mut<OrmClass>(class_address);
+        assert!(
+            object::object_address(&c.creator) == creator_address,
+            error::invalid_argument(ENOT_ORM_CREATOR_OBJECT)
+        );
+        let etype: String = string::utf8(b"@");
+        string::append(&mut etype, event_type);
+        event::emit_event(&mut c.events,
+            OrmEvent { object, type: c.type, event_type: etype },
         );
     }
 
