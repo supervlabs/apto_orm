@@ -1,6 +1,7 @@
 module apto_orm::orm_module {
     use std::signer;
     use std::error;
+    use std::vector;
     use aptos_framework::object::{Self, Object};
     use apto_orm::orm_creator::{OrmCreator};
     use apto_orm::orm_class::{OrmClass};
@@ -14,17 +15,21 @@ module apto_orm::orm_module {
         class: Object<OrmClass>,
     }
 
+    struct OrmModuleClasses<phantom T> has key, copy, drop {
+        classes: vector<Object<OrmClass>>,
+    }
+
     public fun set<T: key>(
-        publisher: &signer, signer: address, class: address,
+        package: &signer, signer: address, class: address,
     ) acquires OrmModule {
-        let publisher_address = signer::address_of(publisher);
-        if (!exists<OrmModule<T>>(publisher_address)) {
-            move_to(publisher, OrmModule<T> {
+        let package_address = signer::address_of(package);
+        if (!exists<OrmModule<T>>(package_address)) {
+            move_to(package, OrmModule<T> {
                 signer: object::address_to_object<OrmCreator>(signer),
                 class: object::address_to_object<OrmClass>(class),
             });
         } else {
-            let orm_module = borrow_global_mut<OrmModule<T>>(publisher_address);
+            let orm_module = borrow_global_mut<OrmModule<T>>(package_address);
             orm_module.signer = object::address_to_object<OrmCreator>(signer);
             orm_module.class = object::address_to_object<OrmClass>(class);
         }
@@ -32,13 +37,40 @@ module apto_orm::orm_module {
 
     #[view]
     public fun get<T: key>(
-        publisher: address
+        package: address
     ): (Object<OrmCreator>, Object<OrmClass>) acquires OrmModule {
         assert!(
-            exists<OrmModule<T>>(publisher),
+            exists<OrmModule<T>>(package),
             error::not_found(EORM_MODULE_NOT_FOUND),
         );
-        let orm_module = borrow_global<OrmModule<T>>(publisher);
+        let orm_module = borrow_global<OrmModule<T>>(package);
         (orm_module.signer, orm_module.class)
+    }
+
+    public fun add_class<T: key>(package: &signer, class: address) acquires OrmModuleClasses {
+        let package_address = signer::address_of(package);
+        if (!exists<OrmModuleClasses<T>>(package_address)) {
+            move_to(package, OrmModuleClasses<T> {
+                classes: vector[object::address_to_object<OrmClass>(class)],
+            });
+        } else {
+            let orm_module = borrow_global_mut<OrmModuleClasses<T>>(package_address);
+            vector::push_back(&mut orm_module.classes, object::address_to_object<OrmClass>(class));
+        }
+    }
+
+    #[view]
+    public fun get_classes<T: key>(
+        package: address
+    ): vector<Object<OrmClass>> acquires OrmModule, OrmModuleClasses {
+        if (exists<OrmModule<T>>(package)) {
+            let orm_module = borrow_global<OrmModule<T>>(package);
+            vector[orm_module.class]
+        } else if (exists<OrmModuleClasses<T>>(package)) {
+            let orm_module = borrow_global<OrmModuleClasses<T>>(package);
+            orm_module.classes
+        } else {
+            vector[]
+        }
     }
 }

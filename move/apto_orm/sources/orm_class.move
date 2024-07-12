@@ -25,6 +25,7 @@ module apto_orm::orm_class {
     const EORM_CLASS_SIGNER_NOT_FOUND: u64 = 5;
     const ENOT_ORM_CREATOR_OBJECT: u64 = 6;
 
+    #[event]
     struct OrmEvent has drop, store {
         object: address,
         type: String,
@@ -503,5 +504,15 @@ module apto_orm::orm_class {
             collection.token_mutable_by_creator,
             collection.token_mutable_by_owner,
         )
+    }
+
+    #[view]
+    public fun get_class_object(orm_creator_address: address, collection_name: String): Object<OrmClass> {
+        let orm_class_address = collection::create_collection_address(&orm_creator_address, &collection_name);
+        assert!(
+            exists<OrmClass>(orm_class_address),
+            error::not_found(EORM_CLASS_NOT_FOUND),
+        );
+        object::address_to_object<OrmClass>(orm_class_address)
     }
 }
