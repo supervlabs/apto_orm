@@ -24,6 +24,7 @@ module apto_orm::orm_class {
     const EORM_COLLECTION_NOT_FOUND: u64 = 4;
     const EORM_CLASS_SIGNER_NOT_FOUND: u64 = 5;
     const ENOT_ORM_CREATOR_OBJECT: u64 = 6;
+    const ENOT_ORM_TOKEN_CLASS: u64 = 7;
 
     #[event]
     struct OrmEvent has drop, store {
@@ -68,6 +69,13 @@ module apto_orm::orm_class {
         /// [FIXME]
         token_mutable_by_creator: bool,
         token_mutable_by_owner: bool,
+    }
+
+    #[resource_group_member(group = aptos_framework::object::ObjectGroup)]
+    struct OrmTokenClassType has key {
+        numbered_token: bool,
+        named_token: bool,
+        named_token_fields: vector<String>,
     }
 
     inline fun borrow_class<T: key>(object: &Object<T>): &OrmClass acquires OrmClass {
@@ -349,6 +357,47 @@ module apto_orm::orm_class {
             collection_royalty_numerator,
         );
         class_address
+    }
+
+    public fun set_orm_token_class_type(
+        orm_creator: &signer,
+        class_address: address,
+        numbered_token: bool,
+        named_token: bool,
+        named_token_fields: vector<String>,
+    ) acquires OrmClass, OrmClassSigner, OrmTokenClassType {
+        let creator_address = signer::address_of(orm_creator);
+        assert!(
+            orm_creator::is_creator(creator_address),
+            error::invalid_argument(ENOT_ORM_CREATOR_OBJECT)
+        );
+        let c = borrow_global<OrmClass>(class_address);
+        assert!(
+            object::object_address(&c.creator) == creator_address,
+            error::invalid_argument(ENOT_ORM_CREATOR_OBJECT)
+        );
+        assert!(
+            exists<OrmClassSigner>(class_address),
+            error::permission_denied(EORM_CLASS_SIGNER_NOT_FOUND),
+        );
+        assert!(
+            exists<OrmTokenClass>(class_address),
+            error::invalid_argument(ENOT_ORM_TOKEN_CLASS),
+        );
+        if (exists<OrmTokenClassType>(class_address)) {
+            let token_type = borrow_global_mut<OrmTokenClassType>(class_address);
+            token_type.numbered_token = numbered_token;
+            token_type.named_token = named_token;
+            token_type.named_token_fields = named_token_fields;
+        } else {
+            let ocs = borrow_global<OrmClassSigner>(class_address);
+            let class_signer = object::generate_signer_for_extending(&ocs.extend_ref);
+            move_to(&class_signer, OrmTokenClassType {
+                numbered_token,
+                named_token,
+                named_token_fields,
+            });
+        };
     }
 
     public fun load_class_signer<T: key>(

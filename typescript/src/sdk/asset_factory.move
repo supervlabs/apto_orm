@@ -13,13 +13,21 @@ module apto_orm_company::asset_factory {
     const EMEMBERSHIP_OBJECT_NOT_FOUND: u64 = 1;
     const ENOT_ASSET_FACTORY_OBJECT: u64 = 2;
 
+    struct AssetCreatorCap has key, drop {
+        creator_cap: orm_creator::OrmCreatorCapability,
+    }
+
     struct AssetFactory has key, copy, drop {}
 
-    fun init_module(_package: &signer) {}
+    fun init_module(package: &signer) {
+        let orm_creator_obj = object::address_to_object<orm_creator::OrmCreator>(@apto_orm_company);
+        let creator_cap = orm_creator::generate_creator_capability(package, orm_creator_obj);
+        move_to<AssetCreatorCap>(package, AssetCreatorCap { creator_cap });
+    }
 
     entry fun update_module(_package_owner: &signer) {}
 
-    fun init_collection(
+    entry fun init_collection(
         package_owner: &signer,
         collection_name: String,
         collection_uri: String,
@@ -36,6 +44,9 @@ module apto_orm_company::asset_factory {
         indirect_transfer_by_owner: bool,
         extensible_by_creator: bool,
         extensible_by_owner: bool,
+        numbered_token: bool,
+        named_token: bool,
+        named_token_fields: vector<String>,
     ) {
         let orm_creator_obj = object::address_to_object<orm_creator::OrmCreator>(@apto_orm_company);
         let orm_creator_signer = orm_creator::load_creator(package_owner, orm_creator_obj);
@@ -58,6 +69,8 @@ module apto_orm_company::asset_factory {
             collection_royalty_denominator,
             collection_royalty_numerator,
         );
+        orm_class::set_orm_token_class_type(&orm_creator_signer, class_address, 
+            numbered_token, named_token, named_token_fields);
         orm_module::add_class<AssetFactory>(
             &orm_creator_signer,
             class_address,
@@ -86,7 +99,8 @@ module apto_orm_company::asset_factory {
             option::none(),
             uri,
         );
-        orm_object::init_properties(&ref,
+        orm_object::init_properties(
+            &ref,
             property_keys,
             property_types,
             property_values,

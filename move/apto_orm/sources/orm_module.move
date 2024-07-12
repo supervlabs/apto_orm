@@ -20,11 +20,11 @@ module apto_orm::orm_module {
     }
 
     public fun set<T: key>(
-        package: &signer, signer: address, class: address,
+        orm_creator: &signer, signer: address, class: address,
     ) acquires OrmModule {
-        let package_address = signer::address_of(package);
+        let package_address = signer::address_of(orm_creator);
         if (!exists<OrmModule<T>>(package_address)) {
-            move_to(package, OrmModule<T> {
+            move_to(orm_creator, OrmModule<T> {
                 signer: object::address_to_object<OrmCreator>(signer),
                 class: object::address_to_object<OrmClass>(class),
             });
@@ -37,20 +37,20 @@ module apto_orm::orm_module {
 
     #[view]
     public fun get<T: key>(
-        package: address
+        orm_creator: address
     ): (Object<OrmCreator>, Object<OrmClass>) acquires OrmModule {
         assert!(
-            exists<OrmModule<T>>(package),
+            exists<OrmModule<T>>(orm_creator),
             error::not_found(EORM_MODULE_NOT_FOUND),
         );
-        let orm_module = borrow_global<OrmModule<T>>(package);
+        let orm_module = borrow_global<OrmModule<T>>(orm_creator);
         (orm_module.signer, orm_module.class)
     }
 
-    public fun add_class<T: key>(package: &signer, class: address) acquires OrmModuleClasses {
-        let package_address = signer::address_of(package);
+    public fun add_class<T: key>(orm_creator: &signer, class: address) acquires OrmModuleClasses {
+        let package_address = signer::address_of(orm_creator);
         if (!exists<OrmModuleClasses<T>>(package_address)) {
-            move_to(package, OrmModuleClasses<T> {
+            move_to(orm_creator, OrmModuleClasses<T> {
                 classes: vector[object::address_to_object<OrmClass>(class)],
             });
         } else {
@@ -61,13 +61,13 @@ module apto_orm::orm_module {
 
     #[view]
     public fun get_classes<T: key>(
-        package: address
+        orm_creator: address
     ): vector<Object<OrmClass>> acquires OrmModule, OrmModuleClasses {
-        if (exists<OrmModule<T>>(package)) {
-            let orm_module = borrow_global<OrmModule<T>>(package);
+        if (exists<OrmModule<T>>(orm_creator)) {
+            let orm_module = borrow_global<OrmModule<T>>(orm_creator);
             vector[orm_module.class]
-        } else if (exists<OrmModuleClasses<T>>(package)) {
-            let orm_module = borrow_global<OrmModuleClasses<T>>(package);
+        } else if (exists<OrmModuleClasses<T>>(orm_creator)) {
+            let orm_module = borrow_global<OrmModuleClasses<T>>(orm_creator);
             orm_module.classes
         } else {
             vector[]

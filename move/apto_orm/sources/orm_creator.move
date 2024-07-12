@@ -123,13 +123,13 @@ module apto_orm::orm_creator {
     }
 
     public fun generate_creator_capability(
-        owner: &signer, creator_obj: Object<OrmCreator>
+        owner_or_creator: &signer, creator_obj: Object<OrmCreator>
     ): OrmCreatorCapability {
-        let owner_address = signer::address_of(owner);
+        let owner_or_creator = signer::address_of(owner_or_creator);
         let orm_creator_address = object::object_address(&creator_obj);
         assert!(
-            object::owner(creator_obj) == owner_address ||
-            orm_creator_address == owner_address,
+            object::owner(creator_obj) == owner_or_creator ||
+            orm_creator_address == owner_or_creator,
             error::permission_denied(ENOT_AUTHORIZED_OWNER),
         );
         OrmCreatorCapability { inner: orm_creator_address }
