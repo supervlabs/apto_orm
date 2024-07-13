@@ -159,14 +159,19 @@ export function OrmClass(config: OrmObjectConfig) {
     }
     use_modules.sort();
     const resource: OrmClassMetadata = {
-      ...config,
       class: target,
-      package_creator: toAddress(config.package_creator),
-      package_address: named_addresses[config.package_name],
       name: target.name,
       module_name,
       fields,
       user_fields: user_fields,
+      error_code: new Map<string, string>([
+        ['not_found', `E${target.name.toUpperCase()}_OBJECT_NOT_FOUND`],
+        ['not_valid_object', `ENOT_${target.name.toUpperCase()}_OBJECT`],
+      ]),
+      use_modules,
+      package_creator: toAddress(config.package_creator),
+      package_name: config.package_name,
+      package_address: named_addresses[config.package_name],
       index_fields,
       direct_transfer: config?.direct_transfer || true,
       deletable_by_creator: config?.deletable_by_creator || true,
@@ -175,12 +180,8 @@ export function OrmClass(config: OrmObjectConfig) {
       indirect_transfer_by_owner: config?.indirect_transfer_by_owner || false,
       extensible_by_creator: config?.extensible_by_creator || true,
       extensible_by_owner: config?.extensible_by_owner || false,
-      error_code: new Map<string, string>([
-        ['not_found', `E${target.name.toUpperCase()}_OBJECT_NOT_FOUND`],
-        ['not_valid_object', `ENOT_${target.name.toUpperCase()}_OBJECT`],
-      ]),
-      use_modules,
       named_addresses,
+      token_config: config.token_config,
     };
     Reflect.defineMetadata(ormObjectKey, resource, target);
     ormClasses.set(target.name, target);
@@ -209,8 +210,19 @@ export const OrmTokenClass = (option: OrmObjectConfig & Partial<OrmTokenConfig>)
     numbered_token: option?.numbered_token || false,
   };
   return OrmClass({
+    package_creator: option.package_creator,
+    package_name: option.package_name,
+    package_address: option.package_address,
+    index_fields: option.index_fields,
+    direct_transfer: option.direct_transfer,
+    deletable_by_creator: option.deletable_by_creator,
+    deletable_by_owner: option.deletable_by_owner,
+    indirect_transfer_by_creator: option.indirect_transfer_by_creator,
+    indirect_transfer_by_owner: option.indirect_transfer_by_owner,
+    extensible_by_creator: option.extensible_by_creator,
+    extensible_by_owner: option.extensible_by_owner,
+    named_addresses: option.named_addresses,
     token_config,
-    ...option,
   });
 };
 
@@ -370,13 +382,12 @@ export function OrmTokenFactory(config: OrmTokenFactoryConfig) {
   const named_addresses: NamedAddresses = config.named_addresses || {};
   named_addresses[config.package_name] = getPackageAddress(config.package_creator, config.package_name);
   named_addresses['apto_orm'] = getOrmAccountAddress();
-  const ormObjectFieldsKey = loadSymbol('orm:object:fields');
-  const ormObjectKey = loadSymbol('orm:object');
+  // const ormObjectFieldsKey = loadSymbol('orm:object:fields');
+  // const ormObjectKey = loadSymbol('orm:object');
   const ormTokenFactoryKey = loadSymbol('orm:token:factory');
 
   const package_creator = toAddress(config.package_creator);
   return function <T extends { new (...args: any[]): {} }>(target: T) {
-    
     const internalcfg = {
       factory: true,
       package_creator: package_creator,

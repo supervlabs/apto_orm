@@ -181,10 +181,34 @@ export type OrmObjectConfig = {
   token_config?: OrmTokenConfig;
 };
 
-export interface OrmClassMetadata extends OrmObjectConfig {
+export interface OrmClassMetadata {
   class: ObjectLiteral;
   package_creator: AccountAddress;
   package_address: AccountAddress;
+  package_name: string;
+  /** Aptos creates named objects with predictable hash addresses, which are derived
+   * from user input and the creator's address. This enables named objects to be indexed
+   * and traced based on the user input provided by the creator.
+   * AptoORM facilitates the creation of indexable objects by utilizing `index_fields`
+   * to organize the fields used in the named object creation.
+   * Conversely, if index_fields is not set, OrmObject is created with a random address. */
+  index_fields?: string[];
+  direct_transfer?: boolean;
+  /** The creator (The owner of OrmCreator object) can remove the ORM objects. */
+  deletable_by_creator?: boolean;
+  /** The owner can remove the ORM objects */
+  deletable_by_owner?: boolean;
+  /** The creator can transfer the ORM objects by AptoORM facilities. */
+  indirect_transfer_by_creator?: boolean;
+  /** The owner can transfer the ORM objects by AptoORM facilities. */
+  indirect_transfer_by_owner?: boolean;
+  /** The creator can extend the ORM objects. */
+  extensible_by_creator?: boolean;
+  /** The owner can extend the ORM objects. */
+  extensible_by_owner?: boolean;
+  named_addresses?: NamedAddresses;
+  /** The token configuration must be set if the OrmObject is Aptos Token object. */
+  token_config?: OrmTokenConfig;
   name: string; // name of the object
   module_name: string; // name of the module
   fields: OrmFieldData[]; // fields of the object
