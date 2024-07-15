@@ -123,7 +123,7 @@ describe('Orm Token Factory', () => {
     token2.uri = 'https://my-second-token/joker';
     token2.description = 'Joker Token';
     token2.seclevel = 100;
-    txn = await client.createTxn(package_creator, token1);
+    txn = await client.createTxn(package_creator, token2);
     ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
     txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
     console.log('createTxn', txnr.hash);
