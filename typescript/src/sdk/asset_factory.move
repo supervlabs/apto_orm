@@ -1,9 +1,9 @@
+
 module apto_orm_company::asset_factory {
     use apto_orm::orm_class;
     use apto_orm::orm_creator;
     use apto_orm::orm_module;
     use apto_orm::orm_object;
-    use apto_orm::utilities;
 
     use aptos_framework::object::{Self, Object};
     use aptos_token_objects::token;
@@ -12,9 +12,11 @@ module apto_orm_company::asset_factory {
     use std::option::{Self, Option};
     use std::string::{Self, String};
 
-    const ENOT_ASSET_FACTORY_OBJECT: u64 = 1;
+    const MAX_METACOMMANDS: u64 = 16;
+    const ETOO_MANY_METACOMMANDS: u64 = 1;
+    const ENOT_ASSET_FACTORY_FACTORY_OBJECT: u64 = 2;
 
-    struct AssetCreatorCap has key, drop {
+    struct AssetFactoryCreatorCap has key, drop {
         creator_cap: orm_creator::OrmCreatorCapability,
     }
 
@@ -23,7 +25,7 @@ module apto_orm_company::asset_factory {
     fun init_module(package: &signer) {
         let orm_creator_obj = object::address_to_object<orm_creator::OrmCreator>(@apto_orm_company);
         let creator_cap = orm_creator::generate_creator_capability(package, orm_creator_obj);
-        move_to<AssetCreatorCap>(package, AssetCreatorCap { creator_cap });
+        move_to<AssetFactoryCreatorCap>(package, AssetFactoryCreatorCap { creator_cap });
     }
 
     entry fun update_module(_package_owner: &signer) {}
@@ -82,43 +84,43 @@ module apto_orm_company::asset_factory {
         property_keys: &vector<String>,
         property_types: &vector<String>,
         property_values: &vector<vector<u8>>,
+        metacmds: &vector<String>,
         metadata: &vector<String>,
         to: &Option<address>,
-    ): Object<AssetFactory>{
+    ): Object<AssetFactory> {
         let orm_creator_obj = object::address_to_object<orm_creator::OrmCreator>(@apto_orm_company);
         let orm_class_obj = orm_class::get_class_object(@apto_orm_company, *collection_name);
         let orm_creator_signer = orm_creator::load_creator(package_owner, orm_creator_obj);
-        let numbered_token = false;
-        let named_token = false;
-        if (vector::length(metadata) >= 1) {
-            let command = vector::borrow(metadata, 0);
-            if (command == &string::utf8(b"numbered_token")) {
-                numbered_token = true;
-            } else if (command == &string::utf8(b"named_token")) {
-                named_token = true;
-            };
+        let numbered_token = MAX_METACOMMANDS;
+        let named_token = MAX_METACOMMANDS;
+        assert!(
+            vector::length(metacmds) > MAX_METACOMMANDS,
+            error::invalid_argument(ETOO_MANY_METACOMMANDS),
+        );
+        vector::enumerate_ref(metacmds, |i, cmd| {
+        if (cmd == &string::utf8(b"numbered_token")) {
+            numbered_token = i;
+        } else if (cmd == &string::utf8(b"named_token")) {
+            named_token = i;
         };
+        });
         
-        let ref = if (numbered_token) {
+        let ref = if (numbered_token < MAX_METACOMMANDS) {
             token::create_numbered_token(
                 &orm_creator_signer,
                 *collection_name,
                 *description,
                 *name,
-                string::utf8(b""),
+                *vector::borrow(metadata, numbered_token),
                 option::none(),
                 *uri,
             )
-        } else if (named_token) {
-            let names = vector::slice(metadata, 1, vector::length(metadata)); // remove the first
+        } else if (named_token < MAX_METACOMMANDS) {
             let ref = token::create_named_token(
                 &orm_creator_signer,
                 *collection_name,
                 *description,
-                utilities::join_str(
-                    &string::utf8(b"::"),
-                    &names,
-                ),
+                *vector::borrow(metadata, named_token),
                 option::none(),
                 *uri,
             );
@@ -163,7 +165,7 @@ module apto_orm_company::asset_factory {
         let object_address = object::object_address(&object);
         assert!(
             exists<AssetFactory>(object_address),
-            error::invalid_argument(ENOT_ASSET_FACTORY_OBJECT),
+            error::invalid_argument(ENOT_ASSET_FACTORY_FACTORY_OBJECT),
         );
         orm_object::update_all_fields(
             package_owner, object, name, uri, description,
@@ -177,8 +179,8 @@ module apto_orm_company::asset_factory {
     ) acquires AssetFactory {
         let object_address = object::object_address(&object);
         assert!(
-          exists<AssetFactory>(object_address),
-          error::invalid_argument(ENOT_ASSET_FACTORY_OBJECT),
+        exists<AssetFactory>(object_address),
+        error::invalid_argument(ENOT_ASSET_FACTORY_FACTORY_OBJECT),
         );
         move_from<AssetFactory>(object_address);
         orm_object::remove(package_owner, object);
@@ -193,6 +195,7 @@ module apto_orm_company::asset_factory {
         property_keys: vector<String>,
         property_types: vector<String>,
         property_values: vector<vector<u8>>,
+        metacmds: vector<String>,
         metadata: vector<String>,
     ) {
         create_token(
@@ -204,6 +207,7 @@ module apto_orm_company::asset_factory {
             &property_keys,
             &property_types,
             &property_values,
+            &metacmds,
             &metadata,
             &option::none(),
         );
@@ -218,6 +222,7 @@ module apto_orm_company::asset_factory {
         property_keys: vector<String>,
         property_types: vector<String>,
         property_values: vector<vector<u8>>,
+        metacmds: vector<String>,
         metadata: vector<String>,
         to: address,
     ) {
@@ -230,6 +235,7 @@ module apto_orm_company::asset_factory {
             &property_keys,
             &property_types,
             &property_values,
+            &metacmds,
             &metadata,
             &option::some(to),
         );
@@ -244,7 +250,8 @@ module apto_orm_company::asset_factory {
         property_keys: vector<vector<String>>,
         property_types: vector<vector<String>>,
         property_values: vector<vector<vector<u8>>>,
-        metadata: vector<String>,
+        metacmdslist: vector<vector<String>>,
+        metadatas: vector<vector<String>>,
         to: address,
     ) {
         let to_addr = option::some(to);
@@ -255,6 +262,8 @@ module apto_orm_company::asset_factory {
             let pk = vector::borrow(&property_keys, i);
             let pt = vector::borrow(&property_types, i);
             let pv = vector::borrow(&property_values, i);
+            let metacmds = vector::borrow(&metacmdslist, i);
+            let metadata = vector::borrow(&metadatas, i);
             create_token(
                 package_owner,
                 collection_name,
@@ -264,7 +273,8 @@ module apto_orm_company::asset_factory {
                 pk,
                 pt,
                 pv,
-                &metadata,
+                metacmds,
+                metadata,
                 &to_addr,
             );
         });
@@ -279,6 +289,7 @@ module apto_orm_company::asset_factory {
         property_keys: vector<String>,
         property_types: vector<String>,
         property_values: vector<vector<u8>>,
+        _metacmds: vector<String>,
         _metadata: vector<String>,
     ) {
         let obj = object::address_to_object<AssetFactory>(object);
@@ -297,6 +308,7 @@ module apto_orm_company::asset_factory {
     entry fun delete(
         package_owner: &signer,
         object: address,
+        _metacmds: vector<String>,
         _metadata: vector<String>,
     ) acquires AssetFactory {
         let obj = object::address_to_object<AssetFactory>(object);

@@ -16,7 +16,6 @@ module ${package_name}::${module_name} {
     use apto_orm::orm_creator;
     use apto_orm::orm_module;
     use apto_orm::orm_object;
-    use apto_orm::utilities;
 
     use aptos_framework::object::{Self, Object};
     use aptos_token_objects::token;
@@ -27,18 +26,18 @@ module ${package_name}::${module_name} {
 
     const MAX_METACOMMANDS: u64 = 16;
     const ETOO_MANY_METACOMMANDS: u64 = 1;
-    const ${errNotFactoryObject}: u64 = 1;
+    const ${errNotFactoryObject}: u64 = 2;
 
-    struct ${creatorCapName} has key, drop {
+    struct AssetFactoryCreatorCap has key, drop {
         creator_cap: orm_creator::OrmCreatorCapability,
     }
 
-    struct ${moduleName} has key, copy, drop {}
+    struct AssetFactory has key, copy, drop {}
 
     fun init_module(package: &signer) {
-        let orm_creator_obj = object::address_to_object<orm_creator::OrmCreator>(@${package_name});
+        let orm_creator_obj = object::address_to_object<orm_creator::OrmCreator>(@apto_orm_company);
         let creator_cap = orm_creator::generate_creator_capability(package, orm_creator_obj);
-        move_to<${creatorCapName}>(package, ${creatorCapName} { creator_cap });
+        move_to<AssetFactoryCreatorCap>(package, AssetFactoryCreatorCap { creator_cap });
     }
 
     entry fun update_module(_package_owner: &signer) {}
@@ -61,9 +60,9 @@ module ${package_name}::${module_name} {
         extensible_by_creator: bool,
         extensible_by_owner: bool,
     ) {
-        let orm_creator_obj = object::address_to_object<orm_creator::OrmCreator>(@${package_name});
+        let orm_creator_obj = object::address_to_object<orm_creator::OrmCreator>(@apto_orm_company);
         let orm_creator_signer = orm_creator::load_creator(package_owner, orm_creator_obj);
-        let class_address = orm_class::update_class_as_collection<${moduleName}>(
+        let class_address = orm_class::update_class_as_collection<AssetFactory>(
             &orm_creator_signer,
             collection_name,
             direct_transfer, 
@@ -82,7 +81,7 @@ module ${package_name}::${module_name} {
             collection_royalty_denominator,
             collection_royalty_numerator,
         );
-        orm_module::add_class<${moduleName}>(
+        orm_module::add_class<AssetFactory>(
             &orm_creator_signer,
             class_address,
         );
@@ -97,43 +96,43 @@ module ${package_name}::${module_name} {
         property_keys: &vector<String>,
         property_types: &vector<String>,
         property_values: &vector<vector<u8>>,
+        metacmds: &vector<String>,
         metadata: &vector<String>,
         to: &Option<address>,
     ): Object<${moduleName}>{
         let orm_creator_obj = object::address_to_object<orm_creator::OrmCreator>(@${package_name});
         let orm_class_obj = orm_class::get_class_object(@${package_name}, *collection_name);
         let orm_creator_signer = orm_creator::load_creator(package_owner, orm_creator_obj);
-        let numbered_token = false;
-        let named_token = false;
-        if (vector::length(metadata) >= 1) {
-            let command = vector::borrow(metadata, 0);
-            if (command == &string::utf8(b"numbered_token")) {
-                numbered_token = true;
-            } else if (command == &string::utf8(b"named_token")) {
-                named_token = true;
+        let numbered_token = MAX_METACOMMANDS;
+        let named_token = MAX_METACOMMANDS;
+        assert!(
+            vector::length(metacmds) > MAX_METACOMMANDS,
+            error::invalid_argument(ETOO_MANY_METACOMMANDS),
+        );
+        vector::enumerate_ref(metacmds, |i, cmd| {
+        if (cmd == &string::utf8(b"numbered_token")) {
+            numbered_token = i;
+        } else if (cmd == &string::utf8(b"named_token")) {
+            named_token = i;
             };
-        };
+        });
         
-        let ref = if (numbered_token) {
+        let ref = if (numbered_token < MAX_METACOMMANDS) {
             token::create_numbered_token(
                 &orm_creator_signer,
                 *collection_name,
                 *description,
                 *name,
-                string::utf8(b""),
+                *vector::borrow(metadata, numbered_token),
                 option::none(),
                 *uri,
             )
-        } else if (named_token) {
-            let names = vector::slice(metadata, 1, vector::length(metadata)); // remove the first
+        } else if (named_token < MAX_METACOMMANDS) {
             let ref = token::create_named_token(
                 &orm_creator_signer,
                 *collection_name,
                 *description,
-                utilities::join_str(
-                    &string::utf8(b"::"),
-                    &names,
-                ),
+                *vector::borrow(metadata, named_token),
                 option::none(),
                 *uri,
             );
@@ -208,6 +207,7 @@ module ${package_name}::${module_name} {
         property_keys: vector<String>,
         property_types: vector<String>,
         property_values: vector<vector<u8>>,
+        metacmds: vector<String>,
         metadata: vector<String>,
     ) {
         create_token(
@@ -219,6 +219,7 @@ module ${package_name}::${module_name} {
             &property_keys,
             &property_types,
             &property_values,
+            &metacmds,
             &metadata,
             &option::none(),
         );
@@ -233,6 +234,7 @@ module ${package_name}::${module_name} {
         property_keys: vector<String>,
         property_types: vector<String>,
         property_values: vector<vector<u8>>,
+        metacmds: vector<String>,
         metadata: vector<String>,
         to: address,
     ) {
@@ -245,6 +247,7 @@ module ${package_name}::${module_name} {
             &property_keys,
             &property_types,
             &property_values,
+            &metacmds,
             &metadata,
             &option::some(to),
         );
@@ -259,6 +262,7 @@ module ${package_name}::${module_name} {
         property_keys: vector<vector<String>>,
         property_types: vector<vector<String>>,
         property_values: vector<vector<vector<u8>>>,
+        metacmdslist: vector<vector<String>>,
         metadatas: vector<vector<String>>,
         to: address,
     ) {
@@ -270,6 +274,7 @@ module ${package_name}::${module_name} {
             let pk = vector::borrow(&property_keys, i);
             let pt = vector::borrow(&property_types, i);
             let pv = vector::borrow(&property_values, i);
+            let metacmds = vector::borrow(&metacmdslist, i);
             let metadata = vector::borrow(&metadatas, i);
             create_token(
                 package_owner,
@@ -280,6 +285,7 @@ module ${package_name}::${module_name} {
                 pk,
                 pt,
                 pv,
+                metacmds,
                 metadata,
                 &to_addr,
             );
@@ -295,6 +301,7 @@ module ${package_name}::${module_name} {
         property_keys: vector<String>,
         property_types: vector<String>,
         property_values: vector<vector<u8>>,
+        _metacmds: vector<String>,
         _metadata: vector<String>,
     ) {
         let obj = object::address_to_object<${moduleName}>(object);
@@ -313,6 +320,7 @@ module ${package_name}::${module_name} {
     entry fun delete(
         package_owner: &signer,
         object: address,
+        _metacmds: vector<String>,
         _metadata: vector<String>,
     ) acquires ${moduleName} {
         let obj = object::address_to_object<${moduleName}>(object);
