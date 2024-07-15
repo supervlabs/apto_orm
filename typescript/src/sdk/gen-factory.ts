@@ -59,6 +59,8 @@ module ${package_name}::${module_name} {
         indirect_transfer_by_owner: bool,
         extensible_by_creator: bool,
         extensible_by_owner: bool,
+        _metacmds: vector<String>,
+        _metadata: vector<String>,
     ) {
         let orm_creator_obj = object::address_to_object<orm_creator::OrmCreator>(@apto_orm_company);
         let orm_creator_signer = orm_creator::load_creator(package_owner, orm_creator_obj);
@@ -106,7 +108,7 @@ module ${package_name}::${module_name} {
         let numbered_token = MAX_METACOMMANDS;
         let named_token = MAX_METACOMMANDS;
         assert!(
-            vector::length(metacmds) > MAX_METACOMMANDS,
+            vector::length(metacmds) < MAX_METACOMMANDS,
             error::invalid_argument(ETOO_MANY_METACOMMANDS),
         );
         vector::enumerate_ref(metacmds, |i, cmd| {

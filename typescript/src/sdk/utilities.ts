@@ -388,3 +388,21 @@ export function convertOrmFieldToTokenProperty(s: OrmFieldTypeString): string {
       throw new Error(`unsupported field type: ${s}`);
   }
 }
+
+export function OrmField2TokenProperty(field: OrmFieldData, data: any): [string, string, any] {
+  switch (field.property_type) {
+    case 'u8':
+    case 'u16':
+    case 'u32':
+    case 'u64':
+    case 'bool':
+    case 'address':
+    case 'u128':
+    case 'u256':  
+      return s;
+    case 'string::String':
+      return '0x1::string::String';
+    default:
+      throw new Error(`unsupported field type: ${s}`);
+  }
+}

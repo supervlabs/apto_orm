@@ -106,6 +106,11 @@ describe('Orm Token Factory', () => {
       expire: new Date(),
     });
 
+    let txn = await client.initializeTxn(package_creator, MyFirstToken);
+    let ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
+    let txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
+    console.log('initializeTxn', txnr.hash);
+    
     // const my_hero_token: MyHeroToken = new MyHeroToken();
     // my_hero_token.name = `MyHeroToken ${Math.floor(Math.random() * 1000000)}`;
     // my_hero_token.uri = 'https://example.com/my_hero_token/silver';
@@ -113,9 +118,9 @@ describe('Orm Token Factory', () => {
     // my_hero_token.level = 100;
     // my_hero_token.grade = 'epic';
     // my_hero_token.comment = 'This is a comment';
-    let txn = await client.createTxn(package_creator, token1);
-    let ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
-    let txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
+    txn = await client.createTxn(package_creator, token1);
+    ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
+    txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
     console.log('createTxn', txnr.hash);
     // const address = client.retrieveOrmObjectAddressFromTxnr(txnr, { object_type: 'MyHeroToken' });
 

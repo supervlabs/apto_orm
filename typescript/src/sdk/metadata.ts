@@ -214,8 +214,8 @@ export const OrmTokenClass = (option: OrmObjectConfig & Partial<OrmTokenConfig>)
     token_use_property_map: option?.token_use_property_map || false,
     royalty_present: option?.royalty_present || false,
     royalty_payee: option?.royalty_payee,
-    royalty_denominator: option?.royalty_denominator || 0,
-    royalty_numerator: option?.royalty_numerator || 0,
+    royalty_denominator: option?.royalty_denominator || 100,
+    royalty_numerator: option?.royalty_numerator || 5,
     numbered_token: option?.numbered_token || false,
   };
   return OrmClass({
@@ -436,15 +436,6 @@ export function OrmTokenFactory(config: OrmTokenFactoryConfig) {
     if (default_token_fields.size > 0) {
       throw new Error(`OrmTokenFactory object must have [${Array.from(default_token_fields).join(', ')}] fields`);
     }
-    if (config.royalty_present) {
-      if (!config.royalty_payee) {
-        // This is not required because the royalty can be set by the collection owner.
-        // throw new Error('config.royalty_payee must be set');
-      }
-      if (!config.royalty_denominator || config.royalty_denominator <= 0) {
-        throw new Error('royalty_denominator must be greater than 0');
-      }
-    }
     const new_fields: OrmFieldData[] = [];
     if (name_field) new_fields.push(name_field);
     if (uri_field) new_fields.push(uri_field);
@@ -459,7 +450,7 @@ export function OrmTokenFactory(config: OrmTokenFactoryConfig) {
         config.module_name,
         []
       );
-    
+
     const metadata: OrmClassMetadata = {
       factory: class_factory,
       class: target,
@@ -488,9 +479,9 @@ export function OrmTokenFactory(config: OrmTokenFactoryConfig) {
         max_supply: config.max_supply || 0,
         token_use_property_map: true,
         royalty_present: config.royalty_present || false,
-        royalty_payee: config.royalty_payee ? toAddress(config.royalty_payee) : undefined,
-        royalty_denominator: config.royalty_denominator || 0,
-        royalty_numerator: config.royalty_numerator || 0,
+        royalty_payee: toAddress(config.royalty_payee ? config.royalty_payee : '0x0'),
+        royalty_denominator: config.royalty_denominator || 100,
+        royalty_numerator: config.royalty_numerator || 5,
         numbered_token: config.numbered_token || false,
       } as OrmTokenConfig,
     };

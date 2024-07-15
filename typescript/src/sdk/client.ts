@@ -10,6 +10,7 @@ import {
   AccountAuthenticator,
   AptosSettings,
   MoveFunctionId,
+  Serializer,
 } from '@aptos-labs/ts-sdk';
 import {
   toAddress,
@@ -330,6 +331,48 @@ export class OrmClient extends Aptos {
     );
   }
 
+  initializeTxnPayload<OrmObject extends ObjectLiteral>(obj: OrmObjectTarget<OrmObject>) {
+    const { metadata } = loadOrmClassMetadata(obj);
+    if (!metadata?.factory) {
+      throw new Error(`object does not need to be initialized`);
+    }
+    const args: any[] = [];
+    const type_args: string[] = [];
+    if (!metadata.package_address) {
+      throw new Error(`package address is not defined`);
+    }
+    args.push(metadata.token_config.collection_name);
+    args.push(metadata.token_config.collection_uri);
+    args.push(metadata.token_config.collection_description);
+    args.push(metadata.token_config.max_supply);
+    args.push(metadata.token_config.royalty_present);
+    args.push(metadata.token_config.royalty_payee);
+    args.push(metadata.token_config.royalty_denominator);
+    args.push(metadata.token_config.royalty_numerator);
+    args.push(metadata.direct_transfer);
+    args.push(metadata.deletable_by_creator);
+    args.push(metadata.deletable_by_owner);
+    args.push(metadata.indirect_transfer_by_creator);
+    args.push(metadata.indirect_transfer_by_owner);
+    args.push(metadata.extensible_by_creator);
+    args.push(metadata.extensible_by_owner);
+    args.push([]); // metacmds
+    args.push([]); // metadata
+    return {
+      function: `${metadata.package_address}::${metadata.module_name}::initialize`,
+      typeArguments: type_args,
+      functionArguments: args,
+    } as OrmFunctionPayload;
+  }
+
+  async initializeTxn<OrmObject extends ObjectLiteral>(
+    user: Account | AccountAddressInput,
+    obj: OrmObjectTarget<OrmObject>,
+    options?: OrmTxnOptions
+  ) {
+    return await this.generateOrmTxn([user], this.initializeTxnPayload(obj), options);
+  }
+
   createTxnPayload<OrmObject extends ObjectLiteral>(obj: OrmObjectTarget<OrmObject>) {
     const { metadata, object } = loadOrmClassMetadata(obj);
     const fields = metadata.fields;
@@ -368,14 +411,16 @@ export class OrmClient extends Aptos {
           if (value instanceof Date) {
             property_values.push(String(+value));
           } else {
-            property_values.push(String(value));
+            property_values.push(value);
           }
+          // Serializer
         }
       }
       args.push(property_key);
       args.push(property_type);
       args.push(property_values);
-      args.push([]);
+      args.push([]); // metacmds
+      args.push([]); // metadata
       console.log(args);
     } else {
       fields.forEach((field) => {
@@ -403,33 +448,9 @@ export class OrmClient extends Aptos {
   }
 
   createToTxnPayload<OrmObject extends ObjectLiteral>(obj: OrmObjectTarget<OrmObject>, to: AccountAddressInput) {
-    const { metadata, object } = loadOrmClassMetadata(obj);
-    const fields = metadata.fields;
-    const args: any[] = [];
-    const type_args: string[] = [];
-    fields.forEach((field) => {
-      if (!field.writable) return;
-      const value = object[field.property_key];
-      if (value === undefined) {
-        throw new Error(`OrmField '${field.property_key}' is not defined`);
-      }
-      args.push(object[field.property_key]);
-    });
-    args.push(to);
-    if (!metadata.package_address) {
-      throw new Error(`package address is not defined`);
-    }
-
-    // type InputEntryFunctionData = {
-    //   function: MoveFunctionId;
-    //   typeArguments?: Array<TypeTag | string>;
-    //   functionArguments: Array<EntryFunctionArgumentTypes | SimpleEntryFunctionArgumentTypes>;
-    // };
-    return {
-      function: `${metadata.package_address}::${metadata.module_name}::create_to`,
-      typeArguments: type_args,
-      functionArguments: args,
-    } as OrmFunctionPayload;
+    const payload = this.createTxnPayload(obj);
+    payload.functionArguments.push(to);
+    return payload;
   }
 
   async createToTxn<OrmObject extends ObjectLiteral>(

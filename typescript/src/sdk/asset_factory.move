@@ -47,6 +47,8 @@ module apto_orm_company::asset_factory {
         indirect_transfer_by_owner: bool,
         extensible_by_creator: bool,
         extensible_by_owner: bool,
+        _metacmds: vector<String>,
+        _metadata: vector<String>,
     ) {
         let orm_creator_obj = object::address_to_object<orm_creator::OrmCreator>(@apto_orm_company);
         let orm_creator_signer = orm_creator::load_creator(package_owner, orm_creator_obj);
