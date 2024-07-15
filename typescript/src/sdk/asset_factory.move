@@ -77,23 +77,23 @@ module apto_orm_company::asset_factory {
 
     fun create_token(
         package_owner: &signer,
-        collection_name: String,
-        name: String,
-        uri: String,
-        description: String,
-        property_keys: vector<String>,
-        property_types: vector<String>,
-        property_values: vector<vector<u8>>,
-        metadata: vector<String>,
-        to: Option<address>,
+        collection_name: &String,
+        name: &String,
+        uri: &String,
+        description: &String,
+        property_keys: &vector<String>,
+        property_types: &vector<String>,
+        property_values: &vector<vector<u8>>,
+        metadata: &vector<String>,
+        to: &Option<address>,
     ): Object<AssetFactory>{
         let orm_creator_obj = object::address_to_object<orm_creator::OrmCreator>(@apto_orm_company);
-        let orm_class_obj = orm_class::get_class_object(@apto_orm_company, collection_name);
+        let orm_class_obj = orm_class::get_class_object(@apto_orm_company, *collection_name);
         let orm_creator_signer = orm_creator::load_creator(package_owner, orm_creator_obj);
         let numbered_token = false;
         let named_token = false;
-        if (vector::length(&metadata) >= 1) {
-            let command = vector::borrow(&metadata, 0);
+        if (vector::length(metadata) >= 1) {
+            let command = vector::borrow(metadata, 0);
             if (command == &string::utf8(b"numbered_token")) {
                 numbered_token = true;
             } else if (command == &string::utf8(b"named_token")) {
@@ -104,50 +104,50 @@ module apto_orm_company::asset_factory {
         let ref = if (numbered_token) {
             token::create_numbered_token(
                 &orm_creator_signer,
-                collection_name,
-                description,
-                name,
+                *collection_name,
+                *description,
+                *name,
                 string::utf8(b""),
                 option::none(),
-                uri,
+                *uri,
             )
         } else if (named_token) {
-            let names = vector::slice(&metadata, 1, vector::length(&metadata)); // remove the first
+            let names = vector::slice(metadata, 1, vector::length(metadata)); // remove the first
             let ref = token::create_named_token(
                 &orm_creator_signer,
-                collection_name,
-                description,
+                *collection_name,
+                *description,
                 utilities::join_str(
                     &string::utf8(b"::"),
                     &names,
                 ),
                 option::none(),
-                uri,
+                *uri,
             );
             let mutator_ref = token::generate_mutator_ref(&ref);
-            token::set_name(&mutator_ref, name);
+            token::set_name(&mutator_ref, *name);
             ref
         } else {
             token::create(
                 &orm_creator_signer,
-                collection_name,
-                description,
-                name,
+                *collection_name,
+                *description,
+                *name,
                 option::none(),
-                uri,
+                *uri,
             )
         };
         orm_object::init_properties(
             &ref,
-            property_keys,
-            property_types,
-            property_values,
+            *property_keys,
+            *property_types,
+            *property_values,
         );
         let object_signer = orm_object::init<AssetFactory>(&orm_creator_signer, &ref, orm_class_obj);
         move_to<AssetFactory>(&object_signer, AssetFactory {});
-        if (option::is_some(&to)) {
-            let destination = option::extract<address>(&mut to);
-            orm_object::transfer_initially(&ref, destination);
+        if (option::is_some(to)) {
+            let destination = option::borrow<address>(to);
+            orm_object::transfer_initially(&ref, *destination);
         };
         object::object_from_constructor_ref<AssetFactory>(&ref)
     }
@@ -199,15 +199,15 @@ module apto_orm_company::asset_factory {
     ) {
         create_token(
             package_owner,
-            collection_name,
-            name,
-            uri,
-            description,
-            property_keys,
-            property_types,
-            property_values,
-            metadata,
-            option::none(),
+            &collection_name,
+            &name,
+            &uri,
+            &description,
+            &property_keys,
+            &property_types,
+            &property_values,
+            &metadata,
+            &option::none(),
         );
     }
 
@@ -225,16 +225,51 @@ module apto_orm_company::asset_factory {
     ) {
         create_token(
             package_owner,
-            collection_name,
-            name,
-            uri,
-            description,
-            property_keys,
-            property_types,
-            property_values,
-            metadata,
-            option::some(to),
+            &collection_name,
+            &name,
+            &uri,
+            &description,
+            &property_keys,
+            &property_types,
+            &property_values,
+            &metadata,
+            &option::some(to),
         );
+    }
+
+    entry fun batch_create_to(
+        package_owner: &signer,
+        collection_names: vector<String>,
+        names: vector<String>,
+        uris: vector<String>,
+        descriptions: vector<String>,
+        property_keys: vector<vector<String>>,
+        property_types: vector<vector<String>>,
+        property_values: vector<vector<vector<u8>>>,
+        metadata: vector<String>,
+        to: address,
+    ) {
+        let to_addr = option::some(to);
+        vector::enumerate_ref(&names, |i, name| {
+            let collection_name = vector::borrow(&collection_names, i);
+            let uri = vector::borrow(&uris, i);
+            let description = vector::borrow(&descriptions, i);
+            let pk = vector::borrow(&property_keys, i);
+            let pt = vector::borrow(&property_types, i);
+            let pv = vector::borrow(&property_values, i);
+            create_token(
+                package_owner,
+                collection_name,
+                name,
+                uri,
+                description,
+                pk,
+                pt,
+                pv,
+                &metadata,
+                &to_addr,
+            );
+        });
     }
 
     entry fun update(
