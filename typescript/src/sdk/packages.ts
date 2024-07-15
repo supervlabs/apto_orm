@@ -209,7 +209,10 @@ export function generatePackage(config: OrmPackageConfig) {
   );
   for (const o of ormobjs) {
     const classdata = getOrmClassMetadata(o);
-    classdata.named_addresses = named_addresses;
+    classdata.named_addresses = {
+      ...classdata.named_addresses,
+      ...named_addresses,
+    };
     classdata.package_address = package_address;
     generateMove(package_move_path, package_name, classdata);
   }

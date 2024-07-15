@@ -181,8 +181,18 @@ export type OrmObjectConfig = {
   token_config?: OrmTokenConfig;
 };
 
+export class OrmClassFactory {
+  constructor(
+    public package_creator: AccountAddress,
+    public package_address: AccountAddress,
+    public package_name: string,
+    public module_name: string,
+    public classes: ObjectLiteral[]
+  ) {}
+}
+
 export interface OrmClassMetadata {
-  factory: boolean;
+  factory?: OrmClassFactory;
   class: ObjectLiteral;
   package_creator: AccountAddress;
   package_address: AccountAddress;

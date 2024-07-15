@@ -19,6 +19,7 @@ import {
   toPrimitiveType,
   getOrmObjectAddress,
   isSignable,
+  convertOrmFieldToTokenProperty,
 } from './utilities';
 import {
   OrmTxn,
@@ -334,16 +335,57 @@ export class OrmClient extends Aptos {
     const fields = metadata.fields;
     const args: any[] = [];
     const type_args: string[] = [];
-    fields.forEach((field) => {
-      if (!field.writable) return;
-      const value = object[field.property_key];
-      if (value === undefined) {
-        throw new Error(`OrmField '${field.property_key}' is not defined`);
-      }
-      args.push(object[field.property_key]);
-    });
     if (!metadata.package_address) {
       throw new Error(`package address is not defined`);
+    }
+    if (metadata.factory) {
+      args.push(metadata.token_config.collection_name);
+      const property_key: string[] = [];
+      const property_type: string[] = [];
+      const property_values: any[] = [];
+      for (let i = 0; i < fields.length; i++) {
+        const field = fields[i];
+        let value: any;
+        if (field.constant) {
+          value = field.constant;
+        } else if (field.timestamp) {
+          value = new Date();
+        } else {
+          value = object[field.property_key];
+        }
+        if (value === undefined) {
+          if (field.default) {
+            value = field.default;
+          } else {
+            throw new Error(`OrmField '${field.property_key}' is not defined`);
+          }
+        }
+        if (field.token_field) {
+          args.push(value);
+        } else if (field.token_property) {
+          property_key.push(field.name);
+          property_type.push(convertOrmFieldToTokenProperty(field.type));
+          if (value instanceof Date) {
+            property_values.push(String(+value));
+          } else {
+            property_values.push(String(value));
+          }
+        }
+      }
+      args.push(property_key);
+      args.push(property_type);
+      args.push(property_values);
+      args.push([]);
+      console.log(args);
+    } else {
+      fields.forEach((field) => {
+        if (!field.writable) return;
+        const value = object[field.property_key];
+        if (value === undefined) {
+          throw new Error(`OrmField '${field.property_key}' is not defined`);
+        }
+        args.push(object[field.property_key]);
+      });
     }
     return {
       function: `${metadata.package_address}::${metadata.module_name}::create`,

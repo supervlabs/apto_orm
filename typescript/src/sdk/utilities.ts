@@ -21,6 +21,7 @@ import {
   object_addr,
   ObjectAddressable,
   Signable,
+  OrmFieldTypeString,
 } from './types';
 import { sha3_256 as sha3Hash } from '@noble/hashes/sha3';
 import toml from 'toml';
@@ -368,4 +369,22 @@ export function getClassAddress<OrmObject extends ObjectLiteral>(
     address = getNamedObjectAddress(metadata.package_address, [metadata.name]);
   }
   return address;
+}
+
+export function convertOrmFieldToTokenProperty(s: OrmFieldTypeString): string {
+  switch (s) {
+    case 'u8':
+    case 'u16':
+    case 'u32':
+    case 'u64':
+    case 'bool':
+    case 'address':
+    case 'u128':
+    case 'u256':  
+      return s;
+    case 'string::String':
+      return '0x1::string::String';
+    default:
+      throw new Error(`unsupported field type: ${s}`);
+  }
 }
