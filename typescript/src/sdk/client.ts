@@ -10,7 +10,6 @@ import {
   AccountAuthenticator,
   AptosSettings,
   MoveFunctionId,
-  Serializer,
 } from '@aptos-labs/ts-sdk';
 import {
   toAddress,
@@ -20,7 +19,7 @@ import {
   toPrimitiveType,
   getOrmObjectAddress,
   isSignable,
-  convertOrmFieldToTokenProperty,
+  OrmField2TokenProperty,
 } from './utilities';
 import {
   OrmTxn,
@@ -406,14 +405,10 @@ export class OrmClient extends Aptos {
         if (field.token_field) {
           args.push(value);
         } else if (field.token_property) {
-          property_key.push(field.name);
-          property_type.push(convertOrmFieldToTokenProperty(field.type));
-          if (value instanceof Date) {
-            property_values.push(String(+value));
-          } else {
-            property_values.push(value);
-          }
-          // Serializer
+          const [k, t, v] = OrmField2TokenProperty(field, value);
+          property_key.push(k);
+          property_type.push(t);
+          property_values.push(v);
         }
       }
       args.push(property_key);

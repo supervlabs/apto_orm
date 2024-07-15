@@ -552,15 +552,13 @@ export function generateMove(package_path: string, package_name: string, class_d
   if (!fs.existsSync(dpath)) {
     fs.mkdirSync(dpath, { recursive: true });
   }
-  
+
   if (class_data.factory) {
-    console.log(class_data);
     if (class_data.factory.classes[0] === class_data.class) {
-      console.log('generate factory ');
       const contents = generateOrmTokenFactory(class_data);
       fs.writeFileSync(fpath, contents.join('\n'), { flag: 'w' });
     } else {
-      console.log('skip factory');
+      // console.log('skip factory');
     }
     return;
   }

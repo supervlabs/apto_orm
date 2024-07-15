@@ -386,7 +386,6 @@ export function OrmTokenFactory(config: OrmTokenFactoryConfig) {
     throw new Error('config.package_name is required');
   }
   return function <T extends { new (...args: any[]): {} }>(target: T) {
-    console.log('OrmTokenFactory', target.name);
     const named_addresses = {
       ...loadAddresses(config),
       ...config.named_addresses,

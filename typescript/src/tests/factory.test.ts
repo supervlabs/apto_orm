@@ -59,7 +59,7 @@ export class MySecondToken {
   description: string;
   @OrmField({ type: 'u32' })
   seclevel!: number;
-  
+
   constructor(fields?: Partial<MyFirstToken>) {
     if (fields) {
       for (const key in fields) {
@@ -110,7 +110,7 @@ describe('Orm Token Factory', () => {
     let ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
     let txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
     console.log('initializeTxn', txnr.hash);
-    
+
     // const my_hero_token: MyHeroToken = new MyHeroToken();
     // my_hero_token.name = `MyHeroToken ${Math.floor(Math.random() * 1000000)}`;
     // my_hero_token.uri = 'https://example.com/my_hero_token/silver';
