@@ -158,7 +158,8 @@ export function OrmClass(config: OrmObjectConfig) {
       user_fields.push(...fields);
     }
     use_modules.sort();
-    const resource: OrmClassMetadata = {
+    const metadata: OrmClassMetadata = {
+      factory: false,
       class: target,
       name: target.name,
       module_name,
@@ -183,14 +184,19 @@ export function OrmClass(config: OrmObjectConfig) {
       named_addresses,
       token_config: config.token_config,
     };
-    Reflect.defineMetadata(ormObjectKey, resource, target);
+    Reflect.defineMetadata(ormObjectKey, metadata, target);
     ormClasses.set(target.name, target);
     ormPackageCreators.set(config.package_name, toAddress(config.package_creator));
     return class extends target {
       public config = config;
       constructor(...args: any[]) {
         super(...args);
-        this.config = config;
+        Object.defineProperty(this, 'config', {
+          value: metadata,
+          writable: false,
+          enumerable: false,
+          configurable: false,
+        });
       }
     };
   };
@@ -378,32 +384,82 @@ export function OrmTokenFactory(config: OrmTokenFactoryConfig) {
   if (!config || !config.package_name) {
     throw new Error('config.package_name is required');
   }
-  console.log('== ooo OrmTokenFactory ', config);
-  const named_addresses: NamedAddresses = config.named_addresses || {};
-  named_addresses[config.package_name] = getPackageAddress(config.package_creator, config.package_name);
-  named_addresses['apto_orm'] = getOrmAccountAddress();
-  // const ormObjectFieldsKey = loadSymbol('orm:object:fields');
-  // const ormObjectKey = loadSymbol('orm:object');
-  const ormTokenFactoryKey = loadSymbol('orm:token:factory');
-
+  const named_addresses = {
+    ...loadAddresses(config),
+    ...config.named_addresses,
+  };
   const package_creator = toAddress(config.package_creator);
   return function <T extends { new (...args: any[]): {} }>(target: T) {
-    const internalcfg = {
+    const fields: OrmFieldData[] = Reflect.getOwnMetadata(ormObjectFieldsKey, target.prototype) || [];
+    const use_modules: string[] = [];
+    const index_fields = config.index_fields || [];
+    fields.forEach((field) => {
+      if (field.index) {
+        if (!index_fields.includes(field.name)) {
+          index_fields.push(field.name);
+        }
+      }
+      switch (field.property_type) {
+        case 'Date':
+          if (!use_modules.includes('aptos_framework::timestamp')) {
+            use_modules.push('aptos_framework::timestamp');
+          }
+          break;
+      }
+      if (field.timestamp) {
+        if (!use_modules.includes('aptos_framework::timestamp')) {
+          use_modules.push('aptos_framework::timestamp');
+        }
+      }
+    });
+    if (index_fields.length > 0 && config.numbered_token) {
+      throw new Error('index_fields cannot be set with numbered_token');
+    }
+    if (index_fields.length > 3) {
+      throw new Error('index_fields must be less than 3');
+    }
+    for (const index_field of index_fields) {
+      const field = fields.find((field) => field.name === index_field);
+      if (!field) {
+        throw new Error(`index_field [${index_field}] not found`);
+      }
+    }
+    const user_fields: OrmFieldData[] = [];
+    const token_fields: Set<string> = new Set(defaultTokenFields);
+    fields.forEach((field) => {
+      const removed = token_fields.delete(field.name);
+      if (removed) {
+        field.token_field = true;
+      } else {
+        user_fields.push(field);
+      }
+    });
+    if (token_fields.size > 0) {
+      throw new Error(`OrmTokenClass object must have [${Array.from(token_fields).join(', ')}] fields`);
+    }
+    if (config.royalty_present) {
+      if (!config.royalty_payee) {
+        // This is not required because the royalty can be set by the collection owner.
+        // throw new Error('config.royalty_payee must be set');
+      }
+      if (!config.royalty_denominator || config.royalty_denominator <= 0) {
+        throw new Error('royalty_denominator must be greater than 0');
+      }
+    }
+    use_modules.sort();
+    const metadata: OrmClassMetadata = {
       factory: true,
+      class: target,
+      name: target.name,
+      module_name: config.module_name,
+      fields: [],
+      user_fields: [],
+      error_code: new Map<string, string>(),
+      use_modules: [],
       package_creator: package_creator,
       package_name: config.package_name,
-      module_name: config.module_name,
-      collection_name: config.collection_name,
-      collection_uri: config.collection_uri,
-      collection_description: config.collection_description,
-      max_supply: config.max_supply || 0,
-      token_use_property_map: true,
-      royalty_present: config.royalty_present || false,
-      royalty_payee: config.royalty_payee ? toAddress(config.royalty_payee) : undefined,
-      royalty_denominator: config.royalty_denominator || 0,
-      royalty_numerator: config.royalty_numerator || 0,
-      numbered_token: config.numbered_token || false,
-      index_fields: config.index_fields || [],
+      package_address: named_addresses[config.package_name],
+      index_fields: [],
       direct_transfer: config.direct_transfer || true,
       deletable_by_creator: config.deletable_by_creator || true,
       deletable_by_owner: config.deletable_by_owner || false,
@@ -411,17 +467,28 @@ export function OrmTokenFactory(config: OrmTokenFactoryConfig) {
       indirect_transfer_by_owner: config.indirect_transfer_by_owner || false,
       extensible_by_creator: config.extensible_by_creator || true,
       extensible_by_owner: config.extensible_by_owner || false,
-      named_addresses,
+      token_config: {
+        collection_name: config.collection_name,
+        collection_uri: config.collection_uri,
+        collection_description: config.collection_description,
+        max_supply: config.max_supply || 0,
+        token_use_property_map: true,
+        royalty_present: config.royalty_present || false,
+        royalty_payee: config.royalty_payee ? toAddress(config.royalty_payee) : undefined,
+        royalty_denominator: config.royalty_denominator || 0,
+        royalty_numerator: config.royalty_numerator || 0,
+        numbered_token: config.numbered_token || false,
+      } as OrmTokenConfig,
     };
-    Reflect.defineMetadata(ormTokenFactoryKey, internalcfg, target);
+    Reflect.defineMetadata(ormObjectKey, metadata, target);
     ormClasses.set(target.name, target);
-    ormPackageCreators.set(internalcfg.package_name, toAddress(internalcfg.package_creator));
+    ormPackageCreators.set(metadata.package_name, toAddress(metadata.package_creator));
     return class extends target {
-      public config = internalcfg;
+      public config = metadata;
       constructor(...args: any[]) {
         super(...args);
         Object.defineProperty(this, 'config', {
-          value: internalcfg,
+          value: metadata,
           writable: false,
           enumerable: false,
           configurable: false,

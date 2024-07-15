@@ -182,6 +182,7 @@ export type OrmObjectConfig = {
 };
 
 export interface OrmClassMetadata {
+  factory: boolean;
   class: ObjectLiteral;
   package_creator: AccountAddress;
   package_address: AccountAddress;

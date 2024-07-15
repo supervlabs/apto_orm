@@ -12,9 +12,7 @@ module apto_orm_company::asset_factory {
     use std::option::{Self, Option};
     use std::string::{Self, String};
 
-    const CLASS_NAME: vector<u8> = b"AssetFactory";
-    const EMEMBERSHIP_OBJECT_NOT_FOUND: u64 = 1;
-    const ENOT_ASSET_FACTORY_OBJECT: u64 = 2;
+    const ENOT_ASSET_FACTORY_OBJECT: u64 = 1;
 
     struct AssetCreatorCap has key, drop {
         creator_cap: orm_creator::OrmCreatorCapability,
@@ -30,7 +28,7 @@ module apto_orm_company::asset_factory {
 
     entry fun update_module(_package_owner: &signer) {}
 
-    entry fun init_collection(
+    entry fun initialize(
         package_owner: &signer,
         collection_name: String,
         collection_uri: String,

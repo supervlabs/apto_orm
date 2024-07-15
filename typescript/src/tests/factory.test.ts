@@ -38,14 +38,20 @@ const package_move_path = path.join(__dirname, '.move/apto_orm_company');
   collection_description: 'Villains Tokens',
 })
 export class MyFirstToken {
-  name: string;
-  uri: string;
-  description: string;
-  // all properties becomes token_property_map
-  level!: number;
-  grade!: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
-  comment!: string;
-  optional?: string;
+  @OrmField({ type: 'string' })
+  public name: string;
+  @OrmField({ type: 'string' })
+  public uri: string;
+  @OrmField({ type: 'string' })
+  public description: string;
+  @OrmField({ type: 'u64' })
+  public level!: number;
+  @OrmField({ type: 'string' })
+  public grade!: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  @OrmField({ type: 'string' })
+  public comment!: string;
+  @OrmField({ type: 'string' })
+  public optional?: string;
   constructor(fields?: Partial<MyFirstToken>) {
     if (fields) {
       for (const key in fields) {
@@ -55,31 +61,31 @@ export class MyFirstToken {
   }
 }
 
-@OrmTokenFactory({
-  package_creator,
-  package_name,
-  module_name,
-  collection_name: 'Villains2',
-  collection_uri: 'https://villains2.com',
-  collection_description: 'Villains2 Tokens',
-})
-export class MySecondToken {
-  name: string;
-  uri: string;
-  description: string;
-  // all properties becomes token_property_map
-  level!: number;
-  grade!: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
-  comment!: string;
-  optional?: string;
-  constructor(fields?: Partial<MyFirstToken>) {
-    if (fields) {
-      for (const key in fields) {
-        (this as any)[key] = fields[key as keyof MyFirstToken];
-      }
-    }
-  }
-}
+// @OrmTokenFactory({
+//   package_creator,
+//   package_name,
+//   module_name,
+//   collection_name: 'Villains2',
+//   collection_uri: 'https://villains2.com',
+//   collection_description: 'Villains2 Tokens',
+// })
+// export class MySecondToken {
+//   name: string;
+//   uri: string;
+//   description: string;
+//   // all properties becomes token_property_map
+//   level!: number;
+//   grade!: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+//   comment!: string;
+//   optional?: string;
+//   constructor(fields?: Partial<MyFirstToken>) {
+//     if (fields) {
+//       for (const key in fields) {
+//         (this as any)[key] = fields[key as keyof MyFirstToken];
+//       }
+//     }
+//   }
+// }
 
 // const exec = async () => {
 //   const token1 = new MyFirstToken({
