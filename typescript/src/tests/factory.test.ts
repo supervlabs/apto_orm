@@ -14,9 +14,9 @@ const package_move_path = path.join(__dirname, '.move/apto_orm_company');
   package_creator,
   package_name,
   module_name,
-  collection_name: 'Villains',
-  collection_uri: 'https://villains.com',
-  collection_description: 'Villains Tokens',
+  collection_name: 'My First Token',
+  collection_uri: 'https://my-first-token.com',
+  collection_description: 'They are my My First Tokens',
 })
 export class MyFirstToken {
   @OrmField({ type: 'string' })
@@ -46,9 +46,9 @@ export class MyFirstToken {
   package_creator,
   package_name,
   module_name,
-  collection_name: 'Villains2',
-  collection_uri: 'https://villains2.com',
-  collection_description: 'Villains2 Tokens',
+  collection_name: 'My Second Token',
+  collection_uri: 'https://my-second-token.com',
+  collection_description: 'They are my My Second Tokens',
 })
 export class MySecondToken {
   @OrmField({ type: 'string' })
@@ -97,11 +97,11 @@ describe('Orm Token Factory', () => {
       console.log('publishPackageTxns', txnr.hash);
     }
     const token1 = new MyFirstToken({
-      name: 'Joker',
-      uri: 'https://villains.com/joker',
+      name: 'First Joker',
+      uri: 'https://my-first-token/joker',
       description: 'Joker Token',
       level: 1,
-      grade: 'common',
+      grade: 'epic',
       comment: 'He is a villain',
       expire: new Date(),
     });
@@ -111,23 +111,24 @@ describe('Orm Token Factory', () => {
     let txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
     console.log('initializeTxn', txnr.hash);
 
-    // const my_hero_token: MyHeroToken = new MyHeroToken();
-    // my_hero_token.name = `MyHeroToken ${Math.floor(Math.random() * 1000000)}`;
-    // my_hero_token.uri = 'https://example.com/my_hero_token/silver';
-    // my_hero_token.description = 'ORM Silver MyHeroToken';
-    // my_hero_token.level = 100;
-    // my_hero_token.grade = 'epic';
-    // my_hero_token.comment = 'This is a comment';
     txn = await client.createTxn(package_creator, token1);
     ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
     txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
     console.log('createTxn', txnr.hash);
-    // const address = client.retrieveOrmObjectAddressFromTxnr(txnr, { object_type: 'MyHeroToken' });
+    const address = client.retrieveOrmObjectAddressFromTxnr(txnr, { object_type: 'MyFirstToken' });
+    console.log('MyFirstToken address', address);
 
-    // console.log('myhero address', address);
-
-    // const myhero = await client.getObject<MyHeroToken>(my_hero_token, true);
-    // console.log('myhero address', myhero[object_addr]?.toString());
+    const token2 = new MySecondToken();
+    token2.name = 'Second Joker';
+    token2.uri = 'https://my-second-token/joker';
+    token2.description = 'Joker Token';
+    token2.seclevel = 100;
+    txn = await client.createTxn(package_creator, token1);
+    ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
+    txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
+    console.log('createTxn', txnr.hash);
+    const addresses = client.retrieveOrmObjectAddressesFromTxnr(txnr, { object_type: MySecondToken });
+    console.log('MySecondToken address', addresses);
 
     // txn = await client.deleteTxn(package_creator, my_hero_token);
     // ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
