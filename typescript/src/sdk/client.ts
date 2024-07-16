@@ -420,7 +420,7 @@ export class OrmClient extends Aptos {
     return args;
   }
 
-  createTxnPayload<OrmObject extends ObjectLiteral>(obj: OrmObjectTarget<OrmObject>) {
+  createTxnPayload<OrmObject extends ObjectLiteral>(obj: OrmObjectTarget<OrmObject>, to?: AccountAddressInput) {
     const { metadata, object } = loadOrmClassMetadata(obj);
     const args: any[] = [];
     const type_args: string[] = [];
@@ -439,8 +439,13 @@ export class OrmClient extends Aptos {
         args.push(object[field.property_key]);
       });
     }
+    if (to) {
+      args.push(to);
+    }
     return {
-      function: `${metadata.package_address}::${metadata.module_name}::create`,
+      function: to
+        ? `${metadata.package_address}::${metadata.module_name}::create_to`
+        : `${metadata.package_address}::${metadata.module_name}::create`,
       typeArguments: type_args,
       functionArguments: args,
     } as OrmFunctionPayload;
@@ -454,19 +459,13 @@ export class OrmClient extends Aptos {
     return await this.generateOrmTxn([user], this.createTxnPayload(obj), options);
   }
 
-  createToTxnPayload<OrmObject extends ObjectLiteral>(obj: OrmObjectTarget<OrmObject>, to: AccountAddressInput) {
-    const payload = this.createTxnPayload(obj);
-    payload.functionArguments.push(to);
-    return payload;
-  }
-
   async createToTxn<OrmObject extends ObjectLiteral>(
     user: Account | AccountAddressInput,
     obj: OrmObjectTarget<OrmObject>,
     to: AccountAddressInput,
     options?: OrmTxnOptions
   ) {
-    return await this.generateOrmTxn([user], this.createToTxnPayload(obj, to), options);
+    return await this.generateOrmTxn([user], this.createTxnPayload(obj, to), options);
   }
 
   batchCreateToTxnPayload(objs: OrmObjectTarget<ObjectLiteral>[], to: AccountAddressInput) {
