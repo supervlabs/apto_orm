@@ -32,6 +32,7 @@ import {
   OrmClassMetadata,
   ObjectAddressable,
   ClassName,
+  OrmObjectDeleted,
 } from './types';
 import { getOrmClassMetadata } from './metadata';
 
@@ -416,7 +417,6 @@ export class OrmClient extends Aptos {
     args.push(property_values);
     args.push([]); // metacmds
     args.push([]); // metadata
-    console.log(args);
     return args;
   }
 
@@ -481,7 +481,7 @@ export class OrmClient extends Aptos {
     const property_values: any[][] = [];
     const metacmds: string[][] = [];
     const metadatas: string[][] = [];
-    
+
     let package_address: string;
     let module_name: string;
     for (const obj of objs) {
@@ -523,7 +523,6 @@ export class OrmClient extends Aptos {
     args.push(metacmds); // metacmdslist
     args.push(metadatas); // metadatas
     args.push(to);
-    console.log(args);
     return {
       function: `${package_address}::${module_name}::batch_create_to`,
       typeArguments: type_args,
@@ -591,6 +590,52 @@ export class OrmClient extends Aptos {
     options?: OrmTxnOptions
   ) {
     return await this.generateOrmTxn([user], this.deleteTxnPayload(obj), options);
+  }
+
+  batchDeleteTxnPayload<OrmObject extends ObjectLiteral>(objsDeleted: OrmObjectDeleted<OrmObject>[]) {
+    const obj_addresses: string[] = [];
+    const metacmdslist: string[][] = [];
+    const metadatas: string[][] = [];
+    let package_address: string;
+    let module_name: string;
+    for (const obj of objsDeleted) {
+      const metadata = getOrmClassMetadata(obj.object);
+      if (!metadata.factory) {
+        throw new Error(`object is not factory object`);
+      }
+      if (!metadata.package_address) {
+        throw new Error(`package address is not defined`);
+      }
+      if (!package_address) {
+        package_address = metadata.package_address.toString();
+      } else if (metadata.package_address.toString() !== package_address) {
+        throw new Error(`different package objects are defined in the batch creation`);
+      }
+      if (!module_name) {
+        module_name = metadata.module_name;
+      } else if (module_name !== metadata.module_name) {
+        throw new Error(`different module objects are defined in the batch creation`);
+      }
+      obj_addresses.push(obj.address.toString());
+      metacmdslist.push([]);
+      metadatas.push([]);
+    }
+    console.log(obj_addresses);
+    const args: any[] = [obj_addresses, metacmdslist, metadatas];
+    const type_args: string[] = [];
+    return {
+      function: `${package_address}::${module_name}::batch_delete`,
+      typeArguments: type_args,
+      functionArguments: args,
+    } as OrmFunctionPayload;
+  }
+
+  async batchDeleteTxn<OrmObject extends ObjectLiteral>(
+    user: Account | AccountAddressInput,
+    objs: OrmObjectDeleted<OrmObject>[],
+    options?: OrmTxnOptions
+  ) {
+    return await this.generateOrmTxn([user], this.batchDeleteTxnPayload(objs), options);
   }
 
   async transferForciblyTxn<OrmObject extends ObjectLiteral>(

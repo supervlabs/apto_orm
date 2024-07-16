@@ -325,6 +325,18 @@ module apto_orm_company::asset_factory {
         delete_token(package_owner, obj);
     }
 
+    entry fun batch_delete(
+        package_owner: &signer,
+        objects: vector<address>,
+        _metacmdslist: vector<vector<String>>,
+        _metadatas: vector<vector<String>>,
+    ) acquires AssetFactory {
+        vector::enumerate_ref(&objects, |_i, obj_addr| {
+            let obj = object::address_to_object<AssetFactory>(*obj_addr);
+            delete_token(package_owner, obj);
+        });
+    }
+
     #[view]
     public fun get(object: address): (String, String, String) {
         let o = object::address_to_object<AssetFactory>(object);

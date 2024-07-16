@@ -174,11 +174,19 @@ describe('Orm Token Factory', () => {
     txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
     console.log('batchCreateToTxn', txnr.hash);
 
-    // txn = await client.deleteTxn(package_creator, my_hero_token);
-    // ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
-    // txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
-
-    // expect(client.retrieveOrmObjectAddressFromTxnr(txnr, { event_type: 'deleted' })).toBe(address);
-    // console.log('deleteTxn', txnr.hash);
+    const batched_addresses = client.retrieveOrmObjectAddressesFromTxnr(txnr, { object_type: MySecondToken });
+    console.log(batched_addresses);
+    const deleting_tokens = batched_addresses.map((address) => {
+      return {
+        address,
+        object: MySecondToken,
+      };
+    });
+    txn = await client.batchDeleteTxn(package_creator, deleting_tokens);
+    ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
+    txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
+    console.log('deleteTxn', txnr.hash);
+    const deleted_addresses = client.retrieveOrmObjectAddressesFromTxnr(txnr, { event_type: 'deleted' });
+    expect(deleted_addresses).toEqual(batched_addresses);
   });
 });

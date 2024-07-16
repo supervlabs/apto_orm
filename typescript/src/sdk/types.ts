@@ -304,6 +304,11 @@ export type OrmObjectTarget<T> =
       object: ClassType<T> | ObjectLiteral | ClassName;
     };
 
+export type OrmObjectDeleted<T> = {
+  address: AccountAddressInput;
+  object: ClassType<T> | ObjectLiteral | ClassName;
+};
+
 export type OrmTokenFactoryConfig = {
   /** The creator address of the object and package */
   package_creator: Account | AccountAddressInput;
