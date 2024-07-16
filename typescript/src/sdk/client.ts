@@ -401,6 +401,8 @@ export class OrmClient extends Aptos {
       if (value === undefined) {
         if (field.default) {
           value = field.default;
+        } else if (field.optional) {
+          continue;
         } else {
           throw new Error(`OrmField '${field.property_key}' is not defined`);
         }
@@ -414,10 +416,10 @@ export class OrmClient extends Aptos {
         property_values.push(v);
       }
     }
-    if (object["@meta"] && Array.isArray(object["@meta"])) {
-      for (const meta of object["@meta"]) {
+    if (object['@meta'] && Array.isArray(object['@meta'])) {
+      for (const meta of object['@meta']) {
         mcmds.push(meta.cmd);
-        mdata.push(meta.data? meta.data : '');
+        mdata.push(meta.data ? meta.data : '');
       }
     }
     args.push(property_key);

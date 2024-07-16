@@ -95,6 +95,8 @@ export interface OrmFieldConfig {
   token_field?: boolean;
   /** The field is a Aptos Token property */
   token_property?: boolean;
+  /** This field is optional */
+  optional?: boolean;
 }
 
 export class OrmFieldData {
@@ -123,6 +125,8 @@ export class OrmFieldData {
   public property_type: any;
   /** whether the field is writable by the user */
   public writable: boolean;
+  /** This field is optional */
+  public optional?: boolean;
 }
 
 /** ORM Token configuration */
