@@ -459,6 +459,10 @@ export class OrmClient extends Aptos {
     } as OrmFunctionPayload;
   }
 
+  createToTxnPayload<OrmObject extends ObjectLiteral>(obj: OrmObjectTarget<OrmObject>, to: AccountAddressInput) {
+    return this.createTxnPayload(obj, to);
+  }
+
   async createTxn<OrmObject extends ObjectLiteral>(
     user: Account | AccountAddressInput,
     obj: OrmObjectTarget<OrmObject>,
