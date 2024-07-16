@@ -32,7 +32,7 @@ import {
   OrmClassMetadata,
   ObjectAddressable,
   ClassName,
-  OrmObjectDeleted,
+  OrmObjectWithAddress,
 } from './types';
 import { getOrmClassMetadata } from './metadata';
 
@@ -386,6 +386,8 @@ export class OrmClient extends Aptos {
     const property_key: string[] = [];
     const property_type: string[] = [];
     const property_values: any[] = [];
+    const mcmds: string[] = [];
+    const mdata: string[] = [];
     for (let i = 0; i < fields.length; i++) {
       const field = fields[i];
       let value: any;
@@ -412,11 +414,17 @@ export class OrmClient extends Aptos {
         property_values.push(v);
       }
     }
+    if (object["@meta"] && Array.isArray(object["@meta"])) {
+      for (const meta of object["@meta"]) {
+        mcmds.push(meta.cmd);
+        mdata.push(meta.data? meta.data : '');
+      }
+    }
     args.push(property_key);
     args.push(property_type);
     args.push(property_values);
-    args.push([]); // metacmds
-    args.push([]); // metadata
+    args.push(mcmds); // metacmds
+    args.push(mdata); // metadata
     return args;
   }
 
@@ -591,7 +599,7 @@ export class OrmClient extends Aptos {
     return await this.generateOrmTxn([user], this.deleteTxnPayload(obj), options);
   }
 
-  batchDeleteTxnPayload<OrmObject extends ObjectLiteral>(objsDeleted: OrmObjectDeleted<OrmObject>[]) {
+  batchDeleteTxnPayload<OrmObject extends ObjectLiteral>(objsDeleted: OrmObjectWithAddress<OrmObject>[]) {
     const obj_addresses: string[] = [];
     const metacmdslist: string[][] = [];
     const metadatas: string[][] = [];
@@ -631,7 +639,7 @@ export class OrmClient extends Aptos {
 
   async batchDeleteTxn<OrmObject extends ObjectLiteral>(
     user: Account | AccountAddressInput,
-    objs: OrmObjectDeleted<OrmObject>[],
+    objs: OrmObjectWithAddress<OrmObject>[],
     options?: OrmTxnOptions
   ) {
     return await this.generateOrmTxn([user], this.batchDeleteTxnPayload(objs), options);
