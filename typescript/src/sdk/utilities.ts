@@ -9,6 +9,7 @@ import {
   Ed25519PrivateKey,
   GenerateAccount,
   Ed25519Account,
+  Serializer,
 } from '@aptos-labs/ts-sdk';
 import {
   OrmObjectConfig,
@@ -21,6 +22,7 @@ import {
   object_addr,
   ObjectAddressable,
   Signable,
+  OrmFieldTypeString,
 } from './types';
 import { sha3_256 as sha3Hash } from '@noble/hashes/sha3';
 import toml from 'toml';
@@ -368,4 +370,65 @@ export function getClassAddress<OrmObject extends ObjectLiteral>(
     address = getNamedObjectAddress(metadata.package_address, [metadata.name]);
   }
   return address;
+}
+
+export function convertOrmFieldToTokenProperty(s: OrmFieldTypeString): string {
+  switch (s) {
+    case 'u8':
+    case 'u16':
+    case 'u32':
+    case 'u64':
+    case 'bool':
+    case 'address':
+    case 'u128':
+    case 'u256':
+      return s;
+    case 'string::String':
+      return '0x1::string::String';
+    default:
+      throw new Error(`unsupported field type: ${s}`);
+  }
+}
+
+export function OrmField2TokenProperty(field: OrmFieldData, data: any): [string, string, Uint8Array] {
+  const serializer = new Serializer();
+  let type: string = field.type;
+  switch (field.property_type) {
+    case 'Date':
+      serializer.serializeU64(+data);
+      return [field.name, type, serializer.toUint8Array()];
+  }
+  switch (field.type) {
+    case 'u8':
+      serializer.serializeU8(data);
+      break;
+    case 'u16':
+      serializer.serializeU16(data);
+      break;
+    case 'u32':
+      serializer.serializeU32(data);
+      break;
+    case 'u64':
+      serializer.serializeU64(data);
+      break;
+    case 'bool':
+      serializer.serializeBool(data);
+      break;
+    case 'address':
+      serializer.serialize(toAddress(data));
+      break;
+    case 'u128':
+      serializer.serializeU128(data);
+      break;
+    case 'u256':
+      serializer.serializeU256(data);
+      break;
+    case 'string::String':
+      type = '0x1::string::String';
+      serializer.serializeStr(data);
+      break;
+    default:
+      throw new Error(`unsupported field type: ${field.type}`);
+  }
+  return [field.name, type, serializer.toUint8Array()];
 }

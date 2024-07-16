@@ -181,10 +181,45 @@ export type OrmObjectConfig = {
   token_config?: OrmTokenConfig;
 };
 
-export interface OrmClassMetadata extends OrmObjectConfig {
+export class OrmClassFactory {
+  constructor(
+    public package_creator: AccountAddress,
+    public package_address: AccountAddress,
+    public package_name: string,
+    public module_name: string,
+    public classes: ObjectLiteral[]
+  ) {}
+}
+
+export interface OrmClassMetadata {
+  factory?: OrmClassFactory;
   class: ObjectLiteral;
   package_creator: AccountAddress;
   package_address: AccountAddress;
+  package_name: string;
+  /** Aptos creates named objects with predictable hash addresses, which are derived
+   * from user input and the creator's address. This enables named objects to be indexed
+   * and traced based on the user input provided by the creator.
+   * AptoORM facilitates the creation of indexable objects by utilizing `index_fields`
+   * to organize the fields used in the named object creation.
+   * Conversely, if index_fields is not set, OrmObject is created with a random address. */
+  index_fields?: string[];
+  direct_transfer?: boolean;
+  /** The creator (The owner of OrmCreator object) can remove the ORM objects. */
+  deletable_by_creator?: boolean;
+  /** The owner can remove the ORM objects */
+  deletable_by_owner?: boolean;
+  /** The creator can transfer the ORM objects by AptoORM facilities. */
+  indirect_transfer_by_creator?: boolean;
+  /** The owner can transfer the ORM objects by AptoORM facilities. */
+  indirect_transfer_by_owner?: boolean;
+  /** The creator can extend the ORM objects. */
+  extensible_by_creator?: boolean;
+  /** The owner can extend the ORM objects. */
+  extensible_by_owner?: boolean;
+  named_addresses?: NamedAddresses;
+  /** The token configuration must be set if the OrmObject is Aptos Token object. */
+  token_config?: OrmTokenConfig;
   name: string; // name of the object
   module_name: string; // name of the module
   fields: OrmFieldData[]; // fields of the object
@@ -268,3 +303,59 @@ export type OrmObjectTarget<T> =
       address: AccountAddressInput;
       object: ClassType<T> | ObjectLiteral | ClassName;
     };
+
+export type OrmObjectDeleted<T> = {
+  address: AccountAddressInput;
+  object: ClassType<T> | ObjectLiteral | ClassName;
+};
+
+export type OrmTokenFactoryConfig = {
+  /** The creator address of the object and package */
+  package_creator: Account | AccountAddressInput;
+  /** The package name where the objects belongs to */
+  package_name: string;
+  /** The name of the factory module */
+  module_name: string;
+  /** The representative name of the token collection (= Aptos Collection Name) */
+  collection_name: string;
+  /** The representative URI of the token collection (= Aptos Collection URI) */
+  collection_uri: string;
+  /** The representative description of the token collection (= Aptos Collection Description) */
+  collection_description: string;
+  /** The maximum token supply of the AptoORM class (= Aptos Collection Max Supply) */
+  max_supply?: number | bigint;
+  /** Whether the token uses property map */
+  // token_use_property_map: boolean; // Always true
+  /** Whether the token has royalty or the collection has royalty itself. */
+  royalty_present?: boolean;
+  /** The payee of the royalty */
+  royalty_payee?: AccountAddressInput;
+  /** The denominator of the royalty */
+  royalty_denominator?: number;
+  /** The numerator of the royalty */
+  royalty_numerator?: number;
+  /** Whether the token is numbered token */
+  numbered_token?: boolean;
+  /** Aptos creates named objects with predictable hash addresses, which are derived
+   * from user input and the creator's address. This enables named objects to be indexed
+   * and traced based on the user input provided by the creator.
+   * AptoORM facilitates the creation of indexable objects by utilizing `index_fields`
+   * to organize the fields used in the named object creation.
+   * Conversely, if index_fields is not set, OrmObject is created with a random address. */
+  index_fields?: string[];
+  /** Objects created by the class can be transferred by `object::transfer()`. */
+  direct_transfer?: boolean;
+  /** The creator (The owner of OrmCreator object) can remove the ORM objects. */
+  deletable_by_creator?: boolean;
+  /** The owner can remove the ORM objects */
+  deletable_by_owner?: boolean;
+  /** The creator can transfer the ORM objects by AptoORM facilities. */
+  indirect_transfer_by_creator?: boolean;
+  /** The owner can transfer the ORM objects by AptoORM facilities. */
+  indirect_transfer_by_owner?: boolean;
+  /** The creator can extend the ORM objects. */
+  extensible_by_creator?: boolean;
+  /** The owner can extend the ORM objects. */
+  extensible_by_owner?: boolean;
+  named_addresses?: NamedAddresses;
+};

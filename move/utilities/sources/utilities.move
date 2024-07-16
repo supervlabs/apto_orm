@@ -28,6 +28,20 @@ module apto_orm::utilities {
         s
     }
 
+    public fun join_str(de: &String, strings: &vector<String>): String {
+        let s: String = string::utf8(b"");
+        let len = vector::length(strings);
+        let i = 0;
+        while (i < len) {
+            string::append(&mut s, *vector::borrow(strings, i));
+            if (i < len - 1) {
+                string::append(&mut s, *de);
+            };
+            i = i + 1;
+        };
+        s
+    }
+
     inline fun is_digit(byte: u8): bool {
         byte >= 0x30 && byte <= 0x39 // byte >= b'0' && byte <= b'9'
     }

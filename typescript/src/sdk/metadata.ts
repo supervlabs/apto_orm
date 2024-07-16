@@ -10,11 +10,18 @@ import {
   OrmFieldCommonMoveType,
   OrmFieldTypeString,
   OrmFieldVectorMoveType,
+  OrmTokenFactoryConfig,
+  OrmClassFactory,
 } from './types';
 import { camelToSnake, loadAddresses, toAddress } from './utilities';
 
-const ormObjectKey = Symbol('orm:object');
-const ormObjectFieldsKey = Symbol('orm:object:fields');
+export function loadSymbol(key: string): symbol {
+  return Symbol.for(key);
+}
+
+const ormObjectKey = Symbol.for('orm:object');
+const ormObjectFieldsKey = Symbol.for('orm:object:fields');
+
 const ormClasses = new Map<string, ObjectLiteral>();
 const ormPackageCreators = new Map<string, AccountAddress>();
 const defaultTokenFields: Set<string> = new Set(['name', 'uri', 'description']);
@@ -154,15 +161,21 @@ export function OrmClass(config: OrmObjectConfig) {
       user_fields.push(...fields);
     }
     use_modules.sort();
-    const resource: OrmClassMetadata = {
-      ...config,
+    const metadata: OrmClassMetadata = {
+      factory: undefined,
       class: target,
-      package_creator: toAddress(config.package_creator),
-      package_address: named_addresses[config.package_name],
       name: target.name,
       module_name,
       fields,
       user_fields: user_fields,
+      error_code: new Map<string, string>([
+        ['not_found', `E${target.name.toUpperCase()}_OBJECT_NOT_FOUND`],
+        ['not_valid_object', `ENOT_${target.name.toUpperCase()}_OBJECT`],
+      ]),
+      use_modules,
+      package_creator: toAddress(config.package_creator),
+      package_name: config.package_name,
+      package_address: named_addresses[config.package_name],
       index_fields,
       direct_transfer: config?.direct_transfer || true,
       deletable_by_creator: config?.deletable_by_creator || true,
@@ -171,21 +184,22 @@ export function OrmClass(config: OrmObjectConfig) {
       indirect_transfer_by_owner: config?.indirect_transfer_by_owner || false,
       extensible_by_creator: config?.extensible_by_creator || true,
       extensible_by_owner: config?.extensible_by_owner || false,
-      error_code: new Map<string, string>([
-        ['not_found', `E${target.name.toUpperCase()}_OBJECT_NOT_FOUND`],
-        ['not_valid_object', `ENOT_${target.name.toUpperCase()}_OBJECT`],
-      ]),
-      use_modules,
       named_addresses,
+      token_config: config.token_config,
     };
-    Reflect.defineMetadata(ormObjectKey, resource, target);
+    Reflect.defineMetadata(ormObjectKey, metadata, target);
     ormClasses.set(target.name, target);
     ormPackageCreators.set(config.package_name, toAddress(config.package_creator));
     return class extends target {
       public config = config;
       constructor(...args: any[]) {
         super(...args);
-        this.config = config;
+        Object.defineProperty(this, 'config', {
+          value: metadata,
+          writable: false,
+          enumerable: false,
+          configurable: false,
+        });
       }
     };
   };
@@ -200,13 +214,24 @@ export const OrmTokenClass = (option: OrmObjectConfig & Partial<OrmTokenConfig>)
     token_use_property_map: option?.token_use_property_map || false,
     royalty_present: option?.royalty_present || false,
     royalty_payee: option?.royalty_payee,
-    royalty_denominator: option?.royalty_denominator || 0,
-    royalty_numerator: option?.royalty_numerator || 0,
+    royalty_denominator: option?.royalty_denominator || 100,
+    royalty_numerator: option?.royalty_numerator || 5,
     numbered_token: option?.numbered_token || false,
   };
   return OrmClass({
+    package_creator: option.package_creator,
+    package_name: option.package_name,
+    package_address: option.package_address,
+    index_fields: option.index_fields,
+    direct_transfer: option.direct_transfer,
+    deletable_by_creator: option.deletable_by_creator,
+    deletable_by_owner: option.deletable_by_owner,
+    indirect_transfer_by_creator: option.indirect_transfer_by_creator,
+    indirect_transfer_by_owner: option.indirect_transfer_by_owner,
+    extensible_by_creator: option.extensible_by_creator,
+    extensible_by_owner: option.extensible_by_owner,
+    named_addresses: option.named_addresses,
     token_config,
-    ...option,
   });
 };
 
@@ -347,4 +372,134 @@ export function getOrmClassFieldMetadata(ormobj: ObjectLiteral | Function | stri
 export function loadNamedAddresses(ormobj: ObjectLiteral) {
   const meta = getOrmClassMetadata(ormobj);
   return meta.named_addresses;
+}
+
+const ormClassFactories = new Map<string, OrmClassFactory>();
+export function OrmTokenFactory(config: OrmTokenFactoryConfig) {
+  if (!config) {
+    throw new Error('config is required');
+  }
+  if (!config || !config.package_creator) {
+    throw new Error('config.package_creator is required');
+  }
+  if (!config || !config.package_name) {
+    throw new Error('config.package_name is required');
+  }
+  return function <T extends { new (...args: any[]): {} }>(target: T) {
+    const named_addresses = {
+      ...loadAddresses(config),
+      ...config.named_addresses,
+    };
+    const package_creator = toAddress(config.package_creator);
+    const fields: OrmFieldData[] = Reflect.getOwnMetadata(ormObjectFieldsKey, target.prototype) || [];
+    const use_modules: string[] = [];
+    const index_fields = config.index_fields || [];
+    const default_token_fields: Set<string> = new Set(defaultTokenFields);
+    let name_field: OrmFieldData;
+    let uri_field: OrmFieldData;
+    let description_field: OrmFieldData;
+    const user_fields: OrmFieldData[] = []; // token_property field
+    fields.forEach((field) => {
+      const removed = default_token_fields.delete(field.name);
+      if (removed) {
+        field.token_field = true;
+        if (field.name === 'name') {
+          name_field = field;
+        } else if (field.name === 'uri') {
+          uri_field = field;
+        } else if (field.name === 'description') {
+          description_field = field;
+        }
+      } else {
+        field.token_property = true;
+        user_fields.push(field);
+      }
+      if (field.index) {
+        if (!index_fields.includes(field.name)) {
+          index_fields.push(field.name);
+        }
+      }
+    });
+    if (index_fields.length > 0 && config.numbered_token) {
+      throw new Error('index_fields cannot be set with numbered_token');
+    }
+    if (index_fields.length > 3) {
+      throw new Error('index_fields must be less than 3');
+    }
+    for (const index_field of index_fields) {
+      const field = fields.find((field) => field.name === index_field);
+      if (!field) {
+        throw new Error(`index_field [${index_field}] not found`);
+      }
+    }
+    if (default_token_fields.size > 0) {
+      throw new Error(`OrmTokenFactory object must have [${Array.from(default_token_fields).join(', ')}] fields`);
+    }
+    const new_fields: OrmFieldData[] = [];
+    if (name_field) new_fields.push(name_field);
+    if (uri_field) new_fields.push(uri_field);
+    if (description_field) new_fields.push(description_field);
+    new_fields.push(...user_fields);
+    const class_factory: OrmClassFactory =
+      ormClassFactories.get(config.module_name) ||
+      new OrmClassFactory(
+        package_creator,
+        named_addresses[config.package_name],
+        config.package_name,
+        config.module_name,
+        []
+      );
+
+    const metadata: OrmClassMetadata = {
+      factory: class_factory,
+      class: target,
+      name: target.name,
+      module_name: config.module_name,
+      fields: new_fields,
+      user_fields,
+      error_code: new Map<string, string>(),
+      use_modules,
+      package_creator,
+      package_name: config.package_name,
+      package_address: named_addresses[config.package_name],
+      index_fields,
+      direct_transfer: config.direct_transfer || true,
+      deletable_by_creator: config.deletable_by_creator || true,
+      deletable_by_owner: config.deletable_by_owner || false,
+      indirect_transfer_by_creator: config.indirect_transfer_by_creator || true,
+      indirect_transfer_by_owner: config.indirect_transfer_by_owner || false,
+      extensible_by_creator: config.extensible_by_creator || true,
+      extensible_by_owner: config.extensible_by_owner || false,
+      named_addresses,
+      token_config: {
+        collection_name: config.collection_name,
+        collection_uri: config.collection_uri,
+        collection_description: config.collection_description,
+        max_supply: config.max_supply || 0,
+        token_use_property_map: true,
+        royalty_present: config.royalty_present || false,
+        royalty_payee: toAddress(config.royalty_payee ? config.royalty_payee : '0x0'),
+        royalty_denominator: config.royalty_denominator || 100,
+        royalty_numerator: config.royalty_numerator || 5,
+        numbered_token: config.numbered_token || false,
+      } as OrmTokenConfig,
+    };
+    metadata.factory.classes.push(target);
+    ormClassFactories.set(config.module_name, class_factory);
+    Reflect.defineMetadata(ormObjectKey, metadata, target);
+    Reflect.defineMetadata(ormObjectFieldsKey, new_fields, target);
+    ormClasses.set(target.name, target);
+    ormPackageCreators.set(metadata.package_name, toAddress(metadata.package_creator));
+    return class extends target {
+      constructor(...args: any[]) {
+        super(...args);
+        Object.defineProperty(this, 'config', {
+          value: metadata,
+          writable: false,
+          enumerable: false,
+          configurable: false,
+        });
+      }
+    };
+  };
 }

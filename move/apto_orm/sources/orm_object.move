@@ -233,6 +233,39 @@ module apto_orm::orm_object {
         token::set_description(option::borrow(&orm_token.mutator_ref), description);
     }
 
+    public fun update_all_fields<T: key>(
+        creator_or_owner: &signer,
+        token: Object<T>,
+        name: String,
+        uri: String,
+        description: String,
+        property_keys: vector<String>,
+        property_types: vector<String>,
+        property_values: vector<vector<u8>>,
+    ) acquires OrmObject, OrmToken {
+        let creator_or_owner_address = signer::address_of(creator_or_owner);
+        let orm_token = authorized_token_borrow(&token, creator_or_owner_address);
+        assert!(
+            option::is_some(&orm_token.mutator_ref),
+            error::permission_denied(ETOKEN_NOT_MUTABLE),
+        );
+        assert!(
+            option::is_some(&orm_token.property_mutator_ref),
+            error::permission_denied(ETOKEN_PROPERTY_NOT_MUTABLE),
+        );
+        let mutator_ref = option::borrow(&orm_token.mutator_ref);
+        token::set_name(mutator_ref, name);
+        token::set_uri(mutator_ref, uri);
+        token::set_description(mutator_ref, description);
+
+        let property_mutator_ref = option::borrow(&orm_token.property_mutator_ref);
+        vector::enumerate_ref(&property_keys, |i, key| {
+            let type = *vector::borrow(&property_types, i);
+            let value = *vector::borrow(&property_values, i);
+            property_map::update(property_mutator_ref, key, type, value);
+        });
+    }
+
     public fun remove<T: key>(creator_or_owner: &signer, object: Object<T>) acquires OrmObject, OrmToken {
         let creator_or_owner_address = signer::address_of(creator_or_owner);
         let object_address = object::object_address(&object);
@@ -393,6 +426,27 @@ module apto_orm::orm_object {
     ) {
         let properties = property_map::prepare_input(property_keys, property_types, property_values);
         property_map::init(ref, properties);
+    }
+
+    public fun update_properties<T: key>(
+        creator_or_owner: &signer,
+        token: Object<T>,
+        property_keys: vector<String>,
+        property_types: vector<String>,
+        property_values: vector<vector<u8>>,
+    ) acquires OrmObject, OrmToken {
+        let creator_or_owner_address = signer::address_of(creator_or_owner);
+        let orm_token = authorized_token_borrow(&token, creator_or_owner_address);
+        assert!(
+            option::is_some(&orm_token.property_mutator_ref),
+            error::permission_denied(ETOKEN_PROPERTY_NOT_MUTABLE),
+        );
+        let ref = option::borrow(&orm_token.property_mutator_ref);
+        vector::enumerate_ref(&property_keys, |i, key| {
+            let type = *vector::borrow(&property_types, i);
+            let value = *vector::borrow(&property_values, i);
+            property_map::update(ref, key, type, value);
+        });
     }
 
     public fun add_property<T: key>(

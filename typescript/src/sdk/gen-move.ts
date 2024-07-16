@@ -2,6 +2,7 @@ import fs from 'fs';
 import { OrmFieldTypeString, OrmClassMetadata, OrmFieldData } from './types';
 import { ensureAddressString } from './utilities';
 import { MoveValue } from '@aptos-labs/ts-sdk';
+import { generateOrmTokenFactory } from './gen-factory';
 
 let indent_depth = 0;
 
@@ -550,6 +551,16 @@ export function generateMove(package_path: string, package_name: string, class_d
   const fpath = `${dpath}/${class_data.module_name}.move`;
   if (!fs.existsSync(dpath)) {
     fs.mkdirSync(dpath, { recursive: true });
+  }
+
+  if (class_data.factory) {
+    if (class_data.factory.classes[0] === class_data.class) {
+      const contents = generateOrmTokenFactory(class_data);
+      fs.writeFileSync(fpath, contents.join('\n'), { flag: 'w' });
+    } else {
+      // console.log('skip factory');
+    }
+    return;
   }
   const contents: string[] = [];
   contents.push(moduleStart(package_name, class_data));
