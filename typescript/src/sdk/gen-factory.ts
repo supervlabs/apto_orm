@@ -269,15 +269,23 @@ module ${package_name}::${module_name} {
         to: address,
     ) {
         let to_addr = option::some(to);
-        vector::enumerate_ref(&names, |i, name| {
-            let collection_name = vector::borrow(&collection_names, i);
+        vector::enumerate_ref(&collection_names, |i, collection_name| {
+            let name = vector::borrow(&names, i);
             let uri = vector::borrow(&uris, i);
             let description = vector::borrow(&descriptions, i);
             let pk = vector::borrow(&property_keys, i);
             let pt = vector::borrow(&property_types, i);
             let pv = vector::borrow(&property_values, i);
-            let metacmds = vector::borrow(&metacmdslist, i);
-            let metadata = vector::borrow(&metadatas, i);
+            let metacmds = if (vector::length(&metacmdslist) > i) {
+                vector::borrow(&metacmdslist, i)
+            } else {
+                &vector::empty()
+            };
+            let metadata = if (vector::length(&metadatas) > i) {
+                vector::borrow(&metadatas, i)
+            } else {
+                &vector::empty()
+            };
             create_token(
                 package_owner,
                 collection_name,

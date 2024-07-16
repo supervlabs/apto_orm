@@ -60,10 +60,10 @@ export class MySecondToken {
   @OrmField({ type: 'u32' })
   seclevel!: number;
 
-  constructor(fields?: Partial<MyFirstToken>) {
+  constructor(fields?: Partial<MySecondToken>) {
     if (fields) {
       for (const key in fields) {
-        (this as any)[key] = fields[key as keyof MyFirstToken];
+        (this as any)[key] = fields[key as keyof MySecondToken];
       }
     }
   }
@@ -71,6 +71,7 @@ export class MySecondToken {
 
 describe('Orm Token Factory', () => {
   test('Test to define, generate, compile, publish and create AptoORM Token Factory', async () => {
+    const to = orm.createAccount();
     const client = new orm.OrmClient('local');
     const package_config: orm.OrmPackageConfig = {
       package_creator: package_creator,
@@ -118,6 +119,11 @@ describe('Orm Token Factory', () => {
     const address = client.retrieveOrmObjectAddressFromTxnr(txnr, { object_type: 'MyFirstToken' });
     console.log('MyFirstToken address', address);
 
+    txn = await client.initializeTxn(package_creator, MySecondToken);
+    ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
+    txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
+    console.log('initializeTxn', txnr.hash);
+
     const token2 = new MySecondToken();
     token2.name = 'Second Joker';
     token2.uri = 'https://my-second-token/joker';
@@ -129,6 +135,44 @@ describe('Orm Token Factory', () => {
     console.log('createTxn', txnr.hash);
     const addresses = client.retrieveOrmObjectAddressesFromTxnr(txnr, { object_type: MySecondToken });
     console.log('MySecondToken address', addresses);
+
+    const tokens = [
+      new MyFirstToken({
+        name: 'First Joker 1',
+        uri: 'https://my-first-token/joker',
+        description: 'Joker Token',
+        level: 1,
+        grade: 'epic',
+        comment: 'He is a villain',
+        expire: new Date(),
+      }),
+      new MyFirstToken({
+        name: 'First Joker 1x',
+        uri: 'https://my-first-token/joker',
+        description: 'Joker Token',
+        level: 2,
+        grade: 'epic',
+        comment: 'He is a villain',
+        expire: new Date(),
+      }),
+      new MySecondToken({
+        name: 'Second Joker 1',
+        uri: 'https://my-second-token/joker',
+        description: 'Joker Token',
+        seclevel: 99,
+      }),
+      new MySecondToken({
+        name: 'Second Joker 2',
+        uri: 'https://my-second-token/joker',
+        description: 'Joker Token',
+        seclevel: 98,
+      }),
+    ];
+
+    txn = await client.batchCreateToTxn(package_creator, tokens, to.accountAddress);
+    ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
+    txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
+    console.log('batchCreateToTxn', txnr.hash);
 
     // txn = await client.deleteTxn(package_creator, my_hero_token);
     // ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);

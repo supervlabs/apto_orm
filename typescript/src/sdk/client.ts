@@ -372,53 +372,65 @@ export class OrmClient extends Aptos {
     return await this.generateOrmTxn([user], this.initializeTxnPayload(obj), options);
   }
 
+  private buildCreateTxnArguments(object: ObjectLiteral | ObjectAddressable, metadata: OrmClassMetadata) {
+    const fields = metadata.fields;
+    const args: any[] = [];
+    if (!metadata.factory) {
+      throw new Error(`build create txn arguments does not support non-factory object`);
+    }
+    if (!metadata.package_address) {
+      throw new Error(`package address is not defined`);
+    }
+    args.push(metadata.token_config.collection_name);
+    const property_key: string[] = [];
+    const property_type: string[] = [];
+    const property_values: any[] = [];
+    for (let i = 0; i < fields.length; i++) {
+      const field = fields[i];
+      let value: any;
+      if (field.constant) {
+        value = field.constant;
+      } else if (field.timestamp) {
+        value = new Date();
+      } else {
+        value = object[field.property_key];
+      }
+      if (value === undefined) {
+        if (field.default) {
+          value = field.default;
+        } else {
+          throw new Error(`OrmField '${field.property_key}' is not defined`);
+        }
+      }
+      if (field.token_field) {
+        args.push(value);
+      } else if (field.token_property) {
+        const [k, t, v] = OrmField2TokenProperty(field, value);
+        property_key.push(k);
+        property_type.push(t);
+        property_values.push(v);
+      }
+    }
+    args.push(property_key);
+    args.push(property_type);
+    args.push(property_values);
+    args.push([]); // metacmds
+    args.push([]); // metadata
+    console.log(args);
+    return args;
+  }
+
   createTxnPayload<OrmObject extends ObjectLiteral>(obj: OrmObjectTarget<OrmObject>) {
     const { metadata, object } = loadOrmClassMetadata(obj);
-    const fields = metadata.fields;
     const args: any[] = [];
     const type_args: string[] = [];
     if (!metadata.package_address) {
       throw new Error(`package address is not defined`);
     }
     if (metadata.factory) {
-      args.push(metadata.token_config.collection_name);
-      const property_key: string[] = [];
-      const property_type: string[] = [];
-      const property_values: any[] = [];
-      for (let i = 0; i < fields.length; i++) {
-        const field = fields[i];
-        let value: any;
-        if (field.constant) {
-          value = field.constant;
-        } else if (field.timestamp) {
-          value = new Date();
-        } else {
-          value = object[field.property_key];
-        }
-        if (value === undefined) {
-          if (field.default) {
-            value = field.default;
-          } else {
-            throw new Error(`OrmField '${field.property_key}' is not defined`);
-          }
-        }
-        if (field.token_field) {
-          args.push(value);
-        } else if (field.token_property) {
-          const [k, t, v] = OrmField2TokenProperty(field, value);
-          property_key.push(k);
-          property_type.push(t);
-          property_values.push(v);
-        }
-      }
-      args.push(property_key);
-      args.push(property_type);
-      args.push(property_values);
-      args.push([]); // metacmds
-      args.push([]); // metadata
-      console.log(args);
+      args.push(...this.buildCreateTxnArguments(object, metadata));
     } else {
-      fields.forEach((field) => {
+      metadata.fields.forEach((field) => {
         if (!field.writable) return;
         const value = object[field.property_key];
         if (value === undefined) {
@@ -455,6 +467,77 @@ export class OrmClient extends Aptos {
     options?: OrmTxnOptions
   ) {
     return await this.generateOrmTxn([user], this.createToTxnPayload(obj, to), options);
+  }
+
+  batchCreateToTxnPayload(objs: OrmObjectTarget<ObjectLiteral>[], to: AccountAddressInput) {
+    const args: any[] = [];
+    const type_args: string[] = [];
+    const collection_names: string[] = [];
+    const names: string[] = [];
+    const uris: string[] = [];
+    const descriptions: string[] = [];
+    const property_keys: string[][] = [];
+    const property_types: string[][] = [];
+    const property_values: any[][] = [];
+    const metacmds: string[][] = [];
+    const metadatas: string[][] = [];
+    
+    let package_address: string;
+    let module_name: string;
+    for (const obj of objs) {
+      const { metadata, object } = loadOrmClassMetadata(obj);
+      if (!metadata.factory) {
+        throw new Error(`object is not factory object`);
+      }
+      if (!metadata.package_address) {
+        throw new Error(`package address is not defined`);
+      }
+      if (!package_address) {
+        package_address = metadata.package_address.toString();
+      } else if (metadata.package_address.toString() !== package_address) {
+        throw new Error(`different package objects are defined in the batch creation`);
+      }
+      if (!module_name) {
+        module_name = metadata.module_name;
+      } else if (module_name !== metadata.module_name) {
+        throw new Error(`different module objects are defined in the batch creation`);
+      }
+      const each = this.buildCreateTxnArguments(object, metadata);
+      collection_names.push(each[0]);
+      names.push(each[1]);
+      uris.push(each[2]);
+      descriptions.push(each[3]);
+      property_keys.push(each[4]);
+      property_types.push(each[5]);
+      property_values.push(each[6]);
+      metacmds.push(each[7]);
+      metadatas.push(each[8]);
+    }
+    args.push(collection_names);
+    args.push(names);
+    args.push(uris);
+    args.push(descriptions);
+    args.push(property_keys);
+    args.push(property_types);
+    args.push(property_values);
+    args.push(metacmds); // metacmdslist
+    args.push(metadatas); // metadatas
+    args.push(to);
+    console.log(args);
+    return {
+      function: `${package_address}::${module_name}::batch_create_to`,
+      typeArguments: type_args,
+      functionArguments: args,
+    } as OrmFunctionPayload;
+  }
+
+  async batchCreateToTxn(
+    user: Account | AccountAddressInput,
+    objs: OrmObjectTarget<ObjectLiteral>[],
+    to: AccountAddressInput,
+    options?: OrmTxnOptions
+  ) {
+    return await this.generateOrmTxn([user], this.batchCreateToTxnPayload(objs, to), options);
   }
 
   updateTxnPayload<OrmObject extends ObjectLiteral>(obj: OrmObjectTarget<OrmObject>) {
