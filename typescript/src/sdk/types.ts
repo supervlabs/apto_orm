@@ -304,7 +304,7 @@ export type OrmObjectTarget<T> =
       object: ClassType<T> | ObjectLiteral | ClassName;
     };
 
-export type OrmObjectDeleted<T> = {
+export type OrmObjectWithAddress<T> = {
   address: AccountAddressInput;
   object: ClassType<T> | ObjectLiteral | ClassName;
 };
