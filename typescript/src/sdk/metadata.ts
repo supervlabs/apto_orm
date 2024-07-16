@@ -261,6 +261,7 @@ export function OrmField(config?: OrmFieldConfig): PropertyDecorator {
     field.index = config.index || false;
     field.token_property = config.token_property || false;
     field.timestamp = config.timestamp || false;
+    field.optional = config.optional || false;
 
     const fields: OrmFieldData[] = Reflect.getOwnMetadata(ormObjectFieldsKey, target) || [];
     fields.push(field);

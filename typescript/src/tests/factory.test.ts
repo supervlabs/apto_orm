@@ -31,7 +31,7 @@ export class MyFirstToken {
   public grade!: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
   @OrmField({ type: 'string' })
   public comment!: string;
-  @OrmField()
+  @OrmField({ optional: true })
   public expire?: Date;
 
   '@meta'?: {
@@ -110,7 +110,6 @@ describe('Orm Token Factory', () => {
       level: 1,
       grade: 'epic',
       comment: 'He is a villain',
-      expire: new Date(),
       '@meta': [
         {
           cmd: 'soulbound',
