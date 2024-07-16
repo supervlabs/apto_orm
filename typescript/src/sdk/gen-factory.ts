@@ -356,15 +356,15 @@ module ${package_name}::${module_name} {
         });
     }
 
-    #[view]
-    public fun get(object: address): (String, String, String) {
-        let o = object::address_to_object<${moduleName}>(object);
-        (
-            token::name(o),
-            token::uri(o),
-            token::description(o),
-        )
-    }
+    // #[view]
+    // public fun get(object: address): (String, String, String) {
+    //     let o = object::address_to_object<${moduleName}>(object);
+    //     (
+    //         token::name(o),
+    //         token::uri(o),
+    //         token::description(o),
+    //     )
+    // }
 
     #[view]
     public fun exists_at(object: address): bool {
