@@ -55,6 +55,14 @@ module apto_orm::orm_module {
             });
         } else {
             let orm_module = borrow_global_mut<OrmModuleClasses<T>>(package_address);
+            let n = vector::length(&orm_module.classes);
+            for (i in 0..n) {
+                let e = vector::borrow(&orm_module.classes, i);
+                let addr = object::object_address<OrmClass>(e);
+                if (&class == &addr) {
+                    return
+                };
+            };
             vector::push_back(&mut orm_module.classes, object::address_to_object<OrmClass>(class));
         }
     }
