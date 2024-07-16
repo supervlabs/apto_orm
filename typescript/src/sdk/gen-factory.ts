@@ -107,16 +107,19 @@ module ${package_name}::${module_name} {
         let orm_creator_signer = orm_creator::load_creator(package_owner, orm_creator_obj);
         let numbered_token = MAX_METACOMMANDS;
         let named_token = MAX_METACOMMANDS;
+        let soulbound = false;
         assert!(
             vector::length(metacmds) < MAX_METACOMMANDS,
             error::invalid_argument(ETOO_MANY_METACOMMANDS),
         );
         vector::enumerate_ref(metacmds, |i, cmd| {
-        if (cmd == &string::utf8(b"numbered_token")) {
-            numbered_token = i;
-        } else if (cmd == &string::utf8(b"named_token")) {
-            named_token = i;
-            };
+            if (cmd == &string::utf8(b"numbered")) {
+                numbered_token = i;
+            } else if (cmd == &string::utf8(b"named")) {
+                named_token = i;
+            } else if (cmd == &string::utf8(b"soulbound")) {
+                soulbound = true;
+            }
         });
         
         let ref = if (numbered_token < MAX_METACOMMANDS) {
@@ -162,6 +165,10 @@ module ${package_name}::${module_name} {
         if (option::is_some(to)) {
             let destination = option::borrow<address>(to);
             orm_object::transfer_initially(&ref, *destination);
+        };
+        if (soulbound) {
+            let transfer_ref = object::generate_transfer_ref(&ref);
+            object::disable_ungated_transfer(&transfer_ref);
         };
         object::object_from_constructor_ref<${moduleName}>(&ref)
     }
@@ -349,15 +356,15 @@ module ${package_name}::${module_name} {
         });
     }
 
-    #[view]
-    public fun get(object: address): (String, String, String) {
-        let o = object::address_to_object<${moduleName}>(object);
-        (
-            token::name(o),
-            token::uri(o),
-            token::description(o),
-        )
-    }
+    // #[view]
+    // public fun get(object: address): (String, String, String) {
+    //     let o = object::address_to_object<${moduleName}>(object);
+    //     (
+    //         token::name(o),
+    //         token::uri(o),
+    //         token::description(o),
+    //     )
+    // }
 
     #[view]
     public fun exists_at(object: address): bool {
