@@ -28,16 +28,16 @@ module ${package_name}::${module_name} {
     const ETOO_MANY_METACOMMANDS: u64 = 1;
     const ${errNotFactoryObject}: u64 = 2;
 
-    struct AssetFactoryCreatorCap has key, drop {
+    struct ${moduleName}CreatorCap has key, drop {
         creator_cap: orm_creator::OrmCreatorCapability,
     }
 
-    struct AssetFactory has key, copy, drop {}
+    struct ${moduleName} has key, copy, drop {}
 
     fun init_module(package: &signer) {
-        let orm_creator_obj = object::address_to_object<orm_creator::OrmCreator>(@apto_orm_company);
+        let orm_creator_obj = object::address_to_object<orm_creator::OrmCreator>(@${package_name});
         let creator_cap = orm_creator::generate_creator_capability(package, orm_creator_obj);
-        move_to<AssetFactoryCreatorCap>(package, AssetFactoryCreatorCap { creator_cap });
+        move_to<${moduleName}CreatorCap>(package, ${moduleName}CreatorCap { creator_cap });
     }
 
     entry fun update_module(_package_owner: &signer) {}
@@ -62,9 +62,9 @@ module ${package_name}::${module_name} {
         _metacmds: vector<String>,
         _metadata: vector<String>,
     ) {
-        let orm_creator_obj = object::address_to_object<orm_creator::OrmCreator>(@apto_orm_company);
+        let orm_creator_obj = object::address_to_object<orm_creator::OrmCreator>(@${package_name});
         let orm_creator_signer = orm_creator::load_creator(package_owner, orm_creator_obj);
-        let class_address = orm_class::update_class_as_collection<AssetFactory>(
+        let class_address = orm_class::update_class_as_collection<${moduleName}>(
             &orm_creator_signer,
             collection_name,
             direct_transfer, 
@@ -83,7 +83,7 @@ module ${package_name}::${module_name} {
             collection_royalty_denominator,
             collection_royalty_numerator,
         );
-        orm_module::add_class<AssetFactory>(
+        orm_module::add_class<${moduleName}>(
             &orm_creator_signer,
             class_address,
         );
@@ -351,7 +351,7 @@ module ${package_name}::${module_name} {
         _metadatas: vector<vector<String>>,
     ) acquires ${moduleName} {
         vector::enumerate_ref(&objects, |_i, obj_addr| {
-            let obj = object::address_to_object<AssetFactory>(*obj_addr);
+            let obj = object::address_to_object<${moduleName}>(*obj_addr);
             delete_token(package_owner, obj);
         });
     }
