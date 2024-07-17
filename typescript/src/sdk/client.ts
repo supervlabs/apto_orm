@@ -20,6 +20,7 @@ import {
   getOrmObjectAddress,
   isSignable,
   OrmField2TokenProperty,
+  ensureAddressString,
 } from './utilities';
 import {
   OrmTxn,
@@ -346,7 +347,7 @@ export class OrmClient extends Aptos {
     args.push(metadata.token_config.collection_description);
     args.push(metadata.token_config.max_supply);
     args.push(metadata.token_config.royalty_present);
-    args.push(metadata.token_config.royalty_payee);
+    args.push(ensureAddressString(metadata.token_config.royalty_payee));
     args.push(metadata.token_config.royalty_denominator);
     args.push(metadata.token_config.royalty_numerator);
     args.push(metadata.direct_transfer);
@@ -450,7 +451,7 @@ export class OrmClient extends Aptos {
       });
     }
     if (to) {
-      args.push(to);
+      args.push(ensureAddressString(to));
     }
     return {
       function: to
