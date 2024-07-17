@@ -102,10 +102,11 @@ export function isSignable(account: any): account is Signable {
 export function toAddress(account: Account | AccountAddressInput): AccountAddress {
   if (isSignable(account)) {
     return account.accountAddress;
+  } else if (typeof account === 'string') {
+    return AccountAddress.fromString(account);
+  } else if ((account as any).accountAddress) {
+    return (account as any).accountAddress as AccountAddress;
   }
-  // else if ((account as any).accountAddress) {
-  //   return (account as any).accountAddress as AccountAddress;
-  // }
   return AccountAddress.from(account);
 }
 

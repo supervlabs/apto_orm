@@ -75,6 +75,48 @@ export class MySecondToken {
   }
 }
 
+@OrmTokenFactory({
+  package_creator,
+  package_name,
+  module_name,
+  collection_name: 'My Second Token',
+  collection_uri: 'https://my-second-token.com',
+  collection_description: 'They are my My Second Tokens',
+})
+export class MyCopyToken {
+  @OrmField({ type: 'string' })
+  name: string;
+  @OrmField({ type: 'string' })
+  uri: string;
+  @OrmField({ type: 'string' })
+  description: string;
+  @OrmField({ type: 'u32' })
+  seclevel!: number;
+
+  constructor(fields?: Partial<MyCopyToken>) {
+    if (fields) {
+      for (const key in fields) {
+        (this as any)[key] = fields[key as keyof MyCopyToken];
+      }
+    }
+  }
+}
+
+export class MyXToken extends MySecondToken {
+  constructor() {
+    const name = 'Gold & Diamonds Bundle';
+    const uri = 'https://public.vir.supervlabs.io/virweb/nft/items/package_smarter.png';
+    const description =
+      'A special package containing valuable Gold and Diamond items for use in the Supervillain Wanted game.';
+    super({
+      name,
+      uri,
+      description,
+      seclevel: 99,
+    });
+  }
+}
+
 describe('Orm Token Factory', () => {
   test('Test to define, generate, compile, publish and create AptoORM Token Factory', async () => {
     const to = orm.createAccount();
@@ -134,11 +176,11 @@ describe('Orm Token Factory', () => {
     txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
     console.log('initializeTxn', txnr.hash);
 
-    const token2 = new MySecondToken();
-    token2.name = 'Second Joker';
-    token2.uri = 'https://my-second-token/joker';
-    token2.description = 'Joker Token';
-    token2.seclevel = 100;
+    const token2 = new MyXToken();
+    // token2.name = 'Second Joker';
+    // token2.uri = 'https://my-second-token/joker';
+    // token2.description = 'Joker Token';
+    // token2.seclevel = 100;
     txn = await client.createTxn(package_creator, token2);
     ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
     txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
@@ -176,12 +218,7 @@ describe('Orm Token Factory', () => {
         description: 'Joker Token',
         seclevel: 99,
       }),
-      new MySecondToken({
-        name: 'Second Joker 2',
-        uri: 'https://my-second-token/joker',
-        description: 'Joker Token',
-        seclevel: 98,
-      }),
+      new MyXToken(),
     ];
 
     txn = await client.batchCreateToTxn(package_creator, tokens, to.accountAddress);
