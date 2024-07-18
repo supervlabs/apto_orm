@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   '@aptos-labs/ts-sdk':
-    specifier: 1.18.1
-    version: 1.18.1
+    specifier: 1.25.0
+    version: 1.25.0
   '@noble/hashes':
     specifier: ^1.3.2
     version: 1.4.0
@@ -105,8 +105,8 @@ packages:
       - debug
     dev: false
 
-  /@aptos-labs/ts-sdk@1.18.1:
-    resolution: {integrity: sha512-+tsm+UAT8BEMJsT30RpIT8rv6yDwFcs7W/YvyHPG2wnOvTjnGQe1CT8sB/qqUt4OiVhyPdddPQDB4+4oJBVyAQ==}
+  /@aptos-labs/ts-sdk@1.25.0:
+    resolution: {integrity: sha512-2VFdH60jYtcaDdqeuKw1sR0S0yU0ojjypP+cDZwgiY9AyLqggo28uGXi1Wn+blqWQA3SwKZkAWO2dsIKLXx1OQ==}
     engines: {node: '>=11.0.0'}
     dependencies:
       '@aptos-labs/aptos-cli': 0.1.9
