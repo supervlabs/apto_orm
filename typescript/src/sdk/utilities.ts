@@ -10,6 +10,7 @@ import {
   GenerateAccount,
   Ed25519Account,
   Serializer,
+  KeylessAccount,
 } from '@aptos-labs/ts-sdk';
 import {
   OrmObjectConfig,
@@ -96,6 +97,8 @@ export function getShortAddress(address: Account | AccountAddressInput): string 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isSignable(account: any): account is Signable {
   if (account instanceof Account) return true;
+  else if (account instanceof Ed25519Account) return true;
+  else if (account instanceof KeylessAccount) return true;
   return account && typeof account.sign === 'function' && account.accountAddress instanceof AccountAddress;
 }
 

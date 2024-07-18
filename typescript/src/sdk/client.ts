@@ -151,6 +151,8 @@ export class OrmClient extends Aptos {
   }
 
   async signOrmTxn(signers: (Account | AccountAddressInput)[], ormtxn: OrmTxn, options?: Pick<OrmTxnOptions, 'payer'>) {
+    console.log(signers);
+    console.log(ormtxn);
     const auths = ormtxn.auths;
     for (let i = 0; i < auths.length; i++) {
       if (auths[i]) continue;
