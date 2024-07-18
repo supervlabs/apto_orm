@@ -29,6 +29,10 @@ import { sha3_256 as sha3Hash } from '@noble/hashes/sha3';
 import toml from 'toml';
 import { getOrmClassFieldMetadata, getOrmClassMetadata } from './metadata';
 
+export function isInstanceOf(obj: any, className: string) {
+  return obj?.constructor?.name === className;
+}
+
 export const camelToSnake = (str: string) =>
   str[0].toLowerCase() + str.slice(1, str.length).replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
 
@@ -96,10 +100,11 @@ export function getShortAddress(address: Account | AccountAddressInput): string 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isSignable(account: any): account is Signable {
+  if (!account) return false;
   if (account instanceof Account) return true;
   else if (account instanceof Ed25519Account) return true;
   else if (account instanceof KeylessAccount) return true;
-  return account && typeof account.sign === 'function' && account.accountAddress instanceof AccountAddress;
+  return typeof account.sign === 'function' && typeof account.signTransaction === 'function' && account.accountAddress;
 }
 
 export function toAddress(account: Account | AccountAddressInput): AccountAddress {
@@ -201,9 +206,9 @@ export function uint8ArrayToHexEncodedBytes(arr: Uint8Array) {
 }
 
 export function serializeArgument(arg: any): any {
-  if (arg instanceof Hex) {
+  if (arg instanceof Hex || isInstanceOf(arg, 'Hex')) {
     return arg.toString();
-  } else if (arg instanceof Uint8Array) {
+  } else if (arg instanceof Uint8Array || isInstanceOf(arg, 'Uint8Array')) {
     return 'vector<u8>::' + uint8ArrayToHexEncodedBytes(arg);
   } else if (Array.isArray(arg)) {
     return arg.map(serializeArgument) as any;
@@ -224,7 +229,7 @@ export function stringifyJson(obj: any, space: string | number = 0) {
   return JSON.stringify(
     obj,
     function (key, value) {
-      if (value instanceof Uint8Array) {
+      if (value instanceof Uint8Array || isInstanceOf(value, 'Uint8Array')) {
         return 'vector<u8>::' + uint8ArrayToHexEncodedBytes(value);
       }
       return value;
@@ -350,7 +355,9 @@ export function getOrmObjectAccountAddress(ormobj: ObjectLiteral) {
   }
   const address = (ormobj as any)[object_addr];
   if (address) {
-    return address instanceof AccountAddress ? address : AccountAddress.from(address);
+    return address instanceof AccountAddress || isInstanceOf(address, 'AccountAddress')
+      ? address
+      : AccountAddress.from(address);
   }
 }
 

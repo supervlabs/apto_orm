@@ -21,6 +21,7 @@ import {
   isSignable,
   OrmField2TokenProperty,
   ensureAddressString,
+  isInstanceOf,
 } from './utilities';
 import {
   OrmTxn,
@@ -47,8 +48,8 @@ export class OrmClient extends Aptos {
   constructor(config: string);
   constructor(config: AptosConfig | AptosSettings | string) {
     let _config: AptosConfig;
-    if (config instanceof AptosConfig) {
-      _config = config;
+    if (config instanceof AptosConfig || isInstanceOf(config, 'AptosConfig')) {
+      _config = config as AptosConfig;
     } else if (typeof config === 'string') {
       const lowcase = config.toLowerCase();
       if (lowcase === 'testnet') {
@@ -151,8 +152,6 @@ export class OrmClient extends Aptos {
   }
 
   async signOrmTxn(signers: (Account | AccountAddressInput)[], ormtxn: OrmTxn, options?: Pick<OrmTxnOptions, 'payer'>) {
-    console.log(signers);
-    console.log(ormtxn);
     const auths = ormtxn.auths;
     for (let i = 0; i < auths.length; i++) {
       if (auths[i]) continue;
@@ -661,8 +660,8 @@ export class OrmClient extends Aptos {
     options?: OrmTxnOptions
   ) {
     let address: AccountAddress;
-    if (obj instanceof AccountAddress) {
-      address = obj;
+    if (obj instanceof AccountAddress || isInstanceOf(obj, 'AccountAddress')) {
+      address = obj as AccountAddress;
     } else if (typeof obj === 'string') {
       address = AccountAddress.fromString(obj);
     } else {
