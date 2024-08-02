@@ -418,6 +418,22 @@ module apto_orm::orm_object {
         });
     }
 
+    public entry fun batch_transfer_safe(
+        creator_or_owner: &signer,
+        objects: vector<address>,
+        from: address,
+        to: address,
+    ) acquires OrmObject {
+        vector::for_each_ref(&objects, |object_address| {
+            let obj = object::address_to_object<OrmToken>(*object_address);
+            assert!(
+                object::owner(obj) == from,
+                error::permission_denied(EOPERATION_NOT_AUTHORIZED),
+            );
+            transfer_forcibly(creator_or_owner, obj, to);
+        });
+    }
+
     public fun init_properties(
         ref: &ConstructorRef,
         property_keys: vector<String>,
