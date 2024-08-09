@@ -364,8 +364,7 @@ export const updateObjectFunction = (class_data: OrmClassMetadata) => {
     code.push(print(`user, object, string::utf8(b"${field.name}"), ${field.name},`));
     code.push(unindent(`);`));
   });
-  if (borrow_num > 0 || class_data.user_fields.length == 0)
-    code.push(print(`orm_object::load_signer(user, object);`));
+  code.push(print(`orm_object::load_signer(user, object);`));
   if (borrow_num > 0) code.push(print(`let user_data = borrow_global_mut<${class_data.name}>(object_address);`));
 
   class_data.user_fields.forEach((field) => {

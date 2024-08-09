@@ -317,7 +317,7 @@ module apto_orm::orm_object {
         object::generate_signer_for_extending(ref)
     }
 
-    public fun set_name<T: key>(
+    public entry fun set_name<T: key>(
         creator_or_owner: &signer,
         object: Object<T>,
         name: String,
@@ -331,7 +331,7 @@ module apto_orm::orm_object {
         token::set_name(option::borrow(&orm_token.mutator_ref), name);
     }
 
-    public fun set_uri<T: key>(
+    public entry fun set_uri<T: key>(
         creator_or_owner: &signer,
         object: Object<T>,
         uri: String,
@@ -345,7 +345,7 @@ module apto_orm::orm_object {
         token::set_uri(option::borrow(&orm_token.mutator_ref), uri);
     }
 
-    public fun set_description<T: key>(
+    public entry fun set_description<T: key>(
         creator_or_owner: &signer,
         object: Object<T>,
         description: String,
@@ -465,7 +465,7 @@ module apto_orm::orm_object {
         });
     }
 
-    public fun add_property<T: key>(
+    public entry fun add_property<T: key>(
         creator_or_owner: &signer,
         token: Object<T>,
         key: String,
@@ -482,7 +482,7 @@ module apto_orm::orm_object {
         property_map::add(ref, key, type, value);
     }
 
-    public fun add_typed_property<T: key, V: drop>(
+    public entry fun add_typed_property<T: key, V: drop>(
         creator_or_owner: &signer,
         token: Object<T>,
         key: String,
@@ -498,7 +498,7 @@ module apto_orm::orm_object {
         property_map::add_typed(ref, key, value);
     }
 
-    public fun remove_property<T: key>(
+    public entry fun remove_property<T: key>(
         creator_or_owner: &signer,
         token: Object<T>,
         key: String,
@@ -513,7 +513,7 @@ module apto_orm::orm_object {
         property_map::remove(ref, &key);
     }
 
-    public fun update_property<T: key>(
+    public entry fun update_property<T: key>(
         creator_or_owner: &signer,
         token: Object<T>,
         key: String,
@@ -530,7 +530,7 @@ module apto_orm::orm_object {
         property_map::update(ref, &key, type, value);
     }
 
-    public fun update_typed_property<T: key, V: drop>(
+    public entry fun update_typed_property<T: key, V: drop>(
         creator_or_owner: &signer,
         token: Object<T>,
         key: String,
