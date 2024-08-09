@@ -355,17 +355,17 @@ export const updateObjectFunction = (class_data: OrmClassMetadata) => {
   code.push(print(`error::invalid_argument(${class_data.error_code.get('not_valid_object')}),`));
   code.push(unindent(`);`));
 
-  code.push(print(`let ${property_num > 0 ? '' : '_'}object_signer = orm_object::load_signer(user, object);`));
   class_data.user_fields.forEach((field) => {
     if (!field.writable) return;
     if (!field.token_property) return;
     if (field.immutable) return;
     const field_type = field.type === 'string::String' ? '0x1::string::String' : field.type;
-    code.push(indent(`orm_object::add_typed_property<T, ${field_type}>(`));
-    code.push(print(`&object_signer, object, string::utf8(b"${field.name}"), ${field.name},`));
+    code.push(indent(`orm_object::update_typed_property<T, ${field_type}>(`));
+    code.push(print(`user, object, string::utf8(b"${field.name}"), ${field.name},`));
     code.push(unindent(`);`));
   });
-
+  if (borrow_num > 0 || class_data.user_fields.length == 0)
+    code.push(print(`orm_object::load_signer(user, object);`));
   if (borrow_num > 0) code.push(print(`let user_data = borrow_global_mut<${class_data.name}>(object_address);`));
 
   class_data.user_fields.forEach((field) => {
