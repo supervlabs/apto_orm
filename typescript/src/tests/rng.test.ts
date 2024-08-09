@@ -147,21 +147,23 @@ describe('AptoORM Object', () => {
     expect(fs.existsSync(`${package_move_path}/build/${snakeToCamel(package_name, true)}/package-metadata.bcs`)).toBe(
       true
     );
-    // const txns = await orm.publishPackageTxns(client, package_creator, package_config);
-    // const txnrs = await client.signSubmitAndWaitOrmTxnsWithResult([package_creator], txns);
-    // for (const txnr of txnrs) {
-    //   console.log('publishPackageTxns', txnr.hash);
-    // }
-    // const package_address = orm.getPackageAddress(package_creator.accountAddress, package_name);
-    // console.log(`package published to ${package_address.toString()}`);
+    const txns = await orm.publishPackageTxns(client, package_creator, package_config);
+    const txnrs = await client.signSubmitAndWaitOrmTxnsWithResult([package_creator], txns);
+    for (const txnr of txnrs) {
+      console.log('publishPackageTxns', txnr.hash);
+    }
+    const package_address = orm.getPackageAddress(package_creator.accountAddress, package_name);
+    console.log(`package published to ${package_address.toString()}`);
 
-    // // 3. create objects
-    // const a = new GachaItem();
-    // a.title = 'First board title';
-    // a.body = 'First board description';
-    // a.like = 10;
-    // expect(a.title).toBe('First board title');
-
+    // 3. create objects
+    const a = new Pet();
+    a.name = 'first pet';
+    a.uri = 'https://super.pet/first_pet.png';
+    a.description = 'first pet description';
+    a.grade = 'common';
+    a.pet_ticket = '0x1';
+    a.salt = BigInt(0);
+    
     // const b: GachaItem = new GachaItem({
     //   title: '2th title',
     //   body: '2th description',
@@ -183,16 +185,27 @@ describe('AptoORM Object', () => {
     // });
     // expect(c.title).toBe('3th title');
 
-    // // 4. create the objects to onchain
-    // txn = await client.createTxn(package_creator, a);
-    // let ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
-    // txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
-    // const a_address = client.retrieveOrmObjectAddressFromTxnr(txnr);
-    // console.log('createTxn', txnr.hash);
-    // console.log('retrieveOrmObjectAddressFromTxnr', a_address);
-    // expect(async () => {
-    //   await client.getObject({ object: GachaItem, address: a_address }, true);
-    // }).not.toThrow();
+    // 4. create the objects to onchain
+    txn = await client.createTxn(package_creator, a);
+    let ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
+    txnr = await client.waitForOrmTxnWithResult(ptxn, { timeoutSecs: 30, checkSuccess: true });
+    const a_address = client.retrieveOrmObjectAddressFromTxnr(txnr);
+    console.log('createTxn', txnr.hash);
+    console.log('retrieveOrmObjectAddressFromTxnr', a_address);
+    expect(async () => {
+      await client.getObject({ object: Pet, address: a_address }, true);
+    }).not.toThrow();
+
+    // 5. update the objects
+    a.grade = 'epic';
+    a.name = 'what?';
+    txn = await client.updateTxn(package_creator, { object: a, address: a_address });
+    ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
+    txnr = await client.waitForOrmTxnWithResult(ptxn, {
+      timeoutSecs: 30,
+      checkSuccess: true,
+    });
+    console.log('updateTxn', txnr.hash);
 
     // txn = await client.createTxn(package_creator, b);
     // ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
@@ -214,16 +227,7 @@ describe('AptoORM Object', () => {
     //   await client.getObject({ object: GachaItem, address: c_address }, true);
     // }).not.toThrow();
 
-    // // 5. update the objects
-    // a.like = 100;
-    // a.body = 'First board description updated';
-    // txn = await client.updateTxn(package_creator, { object: a, address: a_address });
-    // ptxn = await client.signAndsubmitOrmTxn([package_creator], txn);
-    // txnr = await client.waitForOrmTxnWithResult(ptxn, {
-    //   timeoutSecs: 30,
-    //   checkSuccess: true,
-    // });
-    // console.log('updateTxn', txnr.hash);
+
 
     // // 6. delete the objects
     // // To delete an object, you need to specify the object type and address.
