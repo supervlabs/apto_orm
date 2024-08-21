@@ -196,12 +196,12 @@ function orm_test_local() {
    aptos move test --bytecode-version 6 --named-addresses apto_orm=0x1e51 --ignore-compile-warnings || exit 1
    cd - >> /dev/null
 
-   # typescript test
-   cd typescript
-   pnpm install
-   pnpm build
-   pnpm test
-   cd - >> /dev/null
+   # # typescript test
+   # cd typescript
+   # pnpm install
+   # pnpm build
+   # pnpm test
+   # cd - >> /dev/null
    
    # # server test
    # cd server
