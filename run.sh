@@ -115,6 +115,7 @@ compile_move() {
    _check_move_package $1
    cd $1
    aptos move compile --move-2 --save-metadata --named-addresses apto_orm=$APTO_ORM_ADDR
+   # aptos move build-publish-payload --move-2 --json-output-file json_output.json --named-addresses apto_orm=$APTO_ORM_ADDR --assume-yes
    cd - >> /dev/null
 }
 
