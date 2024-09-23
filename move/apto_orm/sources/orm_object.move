@@ -29,16 +29,26 @@ module apto_orm::orm_object {
     const ETOKEN_PROPERTY_NOT_MUTABLE: u64 = 9;
     const EOBJECT_NOT_TRANSFERABLE: u64 = 10;
 
+    // #[event]
+    // enum OrmEventV2 has drop, copy, store {
+    //     DigitalAsset {
+    //         event_type: String, // [digital_asset_mint, digital_asset_burn]
+    //         class_address: address,
+    //         object_address: address,
+    //         object_type: String,
+    //         owner_address: address,
+    //         additional_info: String, // [created_by_fusion, burn_by_release, etc]
+    //     }
+    // }
+
     #[event]
-    enum OrmEventV2 has drop, copy, store {
-        DigitalAsset {
-            event_type: String, // [digital_asset_mint, digital_asset_burn]
-            class_address: address,
-            object_address: address,
-            object_type: String,
-            owner_address: address,
-            additional_info: String, // [created_by_fusion, burn_by_release, etc]
-        }
+    struct OrmEventV2DigitalAsset has drop, copy, store {
+        event_type: String, // [digital_asset_mint, digital_asset_burn]
+        class_address: address,
+        object_address: address,
+        object_type: String,
+        owner_address: address,
+        additional_info: String, // [created_by_fusion, burn_by_release, etc]
     }
 
     #[resource_group_member(group = aptos_framework::object::ObjectGroup)]
@@ -249,7 +259,7 @@ module apto_orm::orm_object {
         let object_address = object::address_from_constructor_ref(ref);
         let object = object::object_from_constructor_ref<OrmObject>(ref);
         event::emit(
-            OrmEventV2::DigitalAsset {
+            OrmEventV2DigitalAsset {
                 event_type: string::utf8(b"digital_asset_mint"),
                 class_address: object::object_address(&class),
                 object_address,
@@ -344,7 +354,7 @@ module apto_orm::orm_object {
             error::permission_denied(EOPERATION_NOT_AUTHORIZED),
         );
         event::emit(
-            OrmEventV2::DigitalAsset {
+            OrmEventV2DigitalAsset {
                 event_type: string::utf8(b"digital_asset_burn"),
                 class_address: object::object_address(&class),
                 object_address,

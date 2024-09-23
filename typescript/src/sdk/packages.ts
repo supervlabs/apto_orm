@@ -141,7 +141,7 @@ export function compilePackage(config: Pick<OrmPackageConfig, 'package_move_path
       'install aptos-cli through the command `curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3`'
     );
   }
-  let command = `cd ${package_move_path} && aptos move compile --move-2 --save-metadata`;
+  let command = `cd ${package_move_path} && aptos move compile --save-metadata`;
   const address = Object.entries(named_addresses || {}).map(([name, addr]) => `${name}=${addr}`);
   if (address.length > 0) command = command + ` --named-addresses ${address.join(',')}`;
   try {
@@ -164,7 +164,7 @@ export function testPackage(config: Pick<OrmPackageConfig, 'package_move_path' |
       'install aptos-cli through the command `curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3`'
     );
   }
-  let command = `cd ${package_move_path} && aptos move test --move-2`;
+  let command = `cd ${package_move_path} && aptos move test`;
   const address = Object.entries(named_addresses || {}).map(([name, addr]) => `${name}=${addr}`);
   if (address.length > 0) command = command + ` --named-addresses ${address.join(',')}`;
   try {
