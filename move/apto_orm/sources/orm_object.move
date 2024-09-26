@@ -7,6 +7,8 @@ module apto_orm::orm_object {
     use aptos_framework::object::{Self, Object, ConstructorRef};
     use aptos_framework::account;
     use aptos_framework::aptos_account;
+    use aptos_std::type_info;
+    use aptos_framework::event;
 
     use aptos_token_objects::token;
     use aptos_token_objects::royalty;
@@ -26,6 +28,18 @@ module apto_orm::orm_object {
     const ETOKEN_NOT_MUTABLE: u64 = 8;
     const ETOKEN_PROPERTY_NOT_MUTABLE: u64 = 9;
     const EOBJECT_NOT_TRANSFERABLE: u64 = 10;
+
+    #[event]
+    enum OrmEventV2 has drop, copy, store {
+        DigitalAsset {
+            event_type: String, // [digital_asset_mint, digital_asset_burn]
+            class_address: address,
+            object_address: address,
+            object_type: String,
+            owner_address: address,
+            additional_info: String, // [created_by_fusion, burn_by_release, etc]
+        }
+    }
 
     #[resource_group_member(group = aptos_framework::object::ObjectGroup)]
     /// OrmObject for non-token objects
@@ -125,6 +139,22 @@ module apto_orm::orm_object {
         ref: &ConstructorRef,
         class: Object<OrmClass>,
     ): signer {
+        init_and_transfer<T>(
+            creator,
+            ref,
+            class,
+            option::none(),
+            string::utf8(b""),
+        )
+    }
+
+    public fun init_and_transfer<T: key>(
+        creator: &signer,
+        ref: &ConstructorRef,
+        class: Object<OrmClass>,
+        to: Option<address>,
+        additional_info: String,
+    ): signer {
         let (
             orm_creator_obj,
             _name,
@@ -210,7 +240,24 @@ module apto_orm::orm_object {
             };
             move_to(&object_signer, orm_token);
         };
+        if (option::is_some(&to)) {
+            let destination = option::extract<address>(&mut to);
+            let transfer_ref = object::generate_transfer_ref(ref);
+            let linear_ref = object::generate_linear_transfer_ref(&transfer_ref);
+            object::transfer_with_ref(linear_ref, destination);
+        };
         let object_address = object::address_from_constructor_ref(ref);
+        let object = object::object_from_constructor_ref<OrmObject>(ref);
+        event::emit(
+            OrmEventV2::DigitalAsset {
+                event_type: string::utf8(b"digital_asset_mint"),
+                class_address: object::object_address(&class),
+                object_address,
+                object_type: type_info::type_name<T>(),
+                owner_address: object::owner(object),
+                additional_info: additional_info,
+            },
+        );
         orm_class::emit_event(class, object_address, string::utf8(b"created"));
         object_signer
     }
@@ -267,6 +314,14 @@ module apto_orm::orm_object {
     }
 
     public fun remove<T: key>(creator_or_owner: &signer, object: Object<T>) acquires OrmObject, OrmToken {
+        delete(creator_or_owner, object, string::utf8(b""))
+    }
+
+    public fun delete<T: key>(
+        creator_or_owner: &signer,
+        object: Object<T>,
+        additional_info: String
+    ) acquires OrmObject, OrmToken {
         let creator_or_owner_address = signer::address_of(creator_or_owner);
         let object_address = object::object_address(&object);
         assert!(
@@ -280,12 +335,23 @@ module apto_orm::orm_object {
             creator_deletable || owner_deletable,
             error::permission_denied(EOBJECT_NOT_DELETABLE),
         );
+        let owner_address = object::owner(object);
         let creator_authorized = creator_deletable &&
             power_of_attorney::is_authorized(&creator, creator_or_owner_address);
-        let owner_authorized = owner_deletable && creator_or_owner_address == object::owner(object);
+        let owner_authorized = owner_deletable && creator_or_owner_address == owner_address;
         assert!(
             creator_authorized || owner_authorized,
             error::permission_denied(EOPERATION_NOT_AUTHORIZED),
+        );
+        event::emit(
+            OrmEventV2::DigitalAsset {
+                event_type: string::utf8(b"digital_asset_burn"),
+                class_address: object::object_address(&class),
+                object_address,
+                object_type: type_info::type_name<T>(),
+                owner_address,
+                additional_info: additional_info,
+            },
         );
         if (exists<OrmToken>(object_address)) {
             let orm_token = move_from<OrmToken>(object_address);

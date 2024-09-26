@@ -114,22 +114,23 @@ _check_move_package() {
 compile_move() {
    _check_move_package $1
    cd $1
-   aptos move compile --bytecode-version 6 --save-metadata --named-addresses apto_orm=$APTO_ORM_ADDR
+   aptos move compile --move-2 --save-metadata --named-addresses apto_orm=$APTO_ORM_ADDR
+   # aptos move build-publish-payload --move-2 --json-output-file json_output.json --named-addresses apto_orm=$APTO_ORM_ADDR --assume-yes
    cd - >> /dev/null
 }
 
 test_move() {
    _check_move_package $1
    cd $1
-   aptos move test --bytecode-version 6 --named-addresses apto_orm=0x1e51 --ignore-compile-warnings || exit 1
+   aptos move test --move-2 --named-addresses apto_orm=0x1e51 --ignore-compile-warnings || exit 1
    cd - >> /dev/null
 }
 
 publish_move() {
    _check_move_package $1
    cd $1 || { echo "$1 not found"; exit 1; }
-   # aptos move publish --override-size-check --bytecode-version 6 --profile default --named-addresses apto_orm=$APTO_ORM_ADDR --assume-yes
-   aptos move publish --bytecode-version 6 --profile default --named-addresses apto_orm=$APTO_ORM_ADDR --assume-yes || exit 1
+   # aptos move publish --move-2 --override-size-check --profile default --named-addresses apto_orm=$APTO_ORM_ADDR --assume-yes
+   aptos move publish --move-2 --profile default --named-addresses apto_orm=$APTO_ORM_ADDR --assume-yes || exit 1
    cd - >> /dev/null
 }
 
@@ -173,12 +174,12 @@ function orm_publish_local() {
    APTO_ORM_ADDR=$(yq '.profiles.default.account' $config_yaml) || exit 1
 
    cd "move/utilities"
-   aptos move publish  --assume-yes --bytecode-version 6 --private-key-file ../../.key/default \
+   aptos move publish --move-2 --assume-yes --private-key-file ../../.key/default \
    --url http://localhost:8080 --named-addresses apto_orm=$APTO_ORM_ADDR || exit 1
    cd - >> /dev/null
 
    cd "move/apto_orm"
-   aptos move publish  --assume-yes --bytecode-version 6 --private-key-file ../../.key/default \
+   aptos move publish --move-2 --assume-yes --private-key-file ../../.key/default \
    --url http://localhost:8080 --named-addresses apto_orm=$APTO_ORM_ADDR || exit 1
    cd - >> /dev/null
 }
@@ -188,12 +189,12 @@ function orm_test_local() {
 
    # utilities move test
    cd "move/utilities"
-   aptos move test --bytecode-version 6 --named-addresses apto_orm=0x1e51 --ignore-compile-warnings || exit 1
+   aptos move test --move-2 --named-addresses apto_orm=0x1e51 --ignore-compile-warnings || exit 1
    cd - >> /dev/null
 
    # apto_orm move test
    cd "move/apto_orm"
-   aptos move test --bytecode-version 6 --named-addresses apto_orm=0x1e51 --ignore-compile-warnings || exit 1
+   aptos move test --move-2 --named-addresses apto_orm=0x1e51 --ignore-compile-warnings || exit 1
    cd - >> /dev/null
 
    # # typescript test

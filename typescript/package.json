@@ -1,6 +1,6 @@
 {
   "name": "apto_orm",
-  "version": "2.2.15",
+  "version": "2.2.18",
   "description": "AptosORM is a library that makes it easy to use Aptos Blockchain",
   "main": "dist/sdk/index.js",
   "bin": {
@@ -17,7 +17,7 @@
   "author": "willing@daum.net",
   "license": "ISC",
   "dependencies": {
-    "@aptos-labs/ts-sdk": "1.27.0",
+    "@aptos-labs/ts-sdk": "1.28.0",
     "@noble/hashes": "^1.4.0",
     "axios": "^1.7.4",
     "commander": "^11.1.0",
