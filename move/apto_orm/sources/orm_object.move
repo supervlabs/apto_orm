@@ -41,6 +41,17 @@ module apto_orm::orm_object {
         }
     }
 
+    #[event]
+    struct DigitalAsset has drop, copy, store {
+        __variant__: String,
+        event_type: String, // [digital_asset_mint, digital_asset_burn]
+        class_address: address,
+        object_address: address,
+        object_type: String,
+        owner_address: address,
+        additional_info: String, // [created_by_fusion, burn_by_release, etc]
+    }
+
     #[resource_group_member(group = aptos_framework::object::ObjectGroup)]
     /// OrmObject for non-token objects
     struct OrmObject has key {
@@ -249,7 +260,8 @@ module apto_orm::orm_object {
         let object_address = object::address_from_constructor_ref(ref);
         let object = object::object_from_constructor_ref<OrmObject>(ref);
         event::emit(
-            OrmEventV2::DigitalAsset {
+            DigitalAsset {
+                __variant__: string::utf8(b"DigitalAsset"),
                 event_type: string::utf8(b"digital_asset_mint"),
                 class_address: object::object_address(&class),
                 object_address,
@@ -344,7 +356,8 @@ module apto_orm::orm_object {
             error::permission_denied(EOPERATION_NOT_AUTHORIZED),
         );
         event::emit(
-            OrmEventV2::DigitalAsset {
+            DigitalAsset {
+                __variant__: string::utf8(b"DigitalAsset"),
                 event_type: string::utf8(b"digital_asset_burn"),
                 class_address: object::object_address(&class),
                 object_address,
