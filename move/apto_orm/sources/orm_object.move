@@ -75,7 +75,7 @@ module apto_orm::orm_object {
     //     expiration_date: u64,
     // }
 
-    inline fun authorized_object_borrow<T: key>(object: &Object<T>, creator_or_owner: address): &OrmObject {
+    inline fun authorized_object_borrow<T: key>(object: &Object<T>, creator_or_owner: address, for_delete: bool): &OrmObject {
         let object_address = object::object_address(object);
         assert!(
             exists<OrmObject>(object_address),
@@ -87,17 +87,19 @@ module apto_orm::orm_object {
             creator_extensible || owner_extensible,
             error::permission_denied(EOBJECT_NOT_EXTENSIBLE),
         );
-        let creator_authorized = creator_extensible &&
-            power_of_attorney::is_authorized(&orm_object.creator, creator_or_owner);
-        let owner_authorized = owner_extensible && creator_or_owner == object::owner(*object);
-        assert!(
-            creator_authorized || owner_authorized,
-            error::permission_denied(EOPERATION_NOT_AUTHORIZED),
-        );
-        assert!(
-            option::is_some(&orm_object.extend_ref),
-            error::permission_denied(EOBJECT_NOT_EXTENSIBLE),
-        );
+        if (!for_delete) {
+            let creator_authorized = creator_extensible &&
+                power_of_attorney::is_authorized(&orm_object.creator, creator_or_owner);
+            let owner_authorized = owner_extensible && creator_or_owner == object::owner(*object);
+            assert!(
+                creator_authorized || owner_authorized,
+                error::permission_denied(EOPERATION_NOT_AUTHORIZED),
+            );
+            assert!(
+                option::is_some(&orm_object.extend_ref),
+                error::permission_denied(EOBJECT_NOT_EXTENSIBLE),
+            );
+        };
         orm_object
     }
 
@@ -378,9 +380,22 @@ module apto_orm::orm_object {
 
     public fun load_signer<T: key>(creator_or_owner: &signer, object: Object<T>): signer acquires OrmObject {
         let creator_or_owner_address = signer::address_of(creator_or_owner);
-        let orm_object = authorized_object_borrow(&object, creator_or_owner_address);
+        let orm_object = authorized_object_borrow(&object, creator_or_owner_address, false);
         let ref = option::borrow(&orm_object.extend_ref);
         object::generate_signer_for_extending(ref)
+    }
+
+    public fun delete_and_load_signer<T: key>(
+        creator_or_owner: &signer,
+        object: Object<T>,
+        additional_info: String
+    ): signer acquires OrmObject, OrmToken {
+        let creator_or_owner_address = signer::address_of(creator_or_owner);
+        let orm_object = authorized_object_borrow(&object, creator_or_owner_address, true);
+        let ref = option::borrow(&orm_object.extend_ref);
+        let obj_signer = object::generate_signer_for_extending(ref);
+        delete<T>(creator_or_owner, object, additional_info);
+        obj_signer
     }
 
     public entry fun set_name<T: key>(
