@@ -32,7 +32,7 @@ export { InputGenerateTransactionPayloadData, InputGenerateTransactionOptions, P
 export { AnyRawTransaction, SimpleTransaction, MultiAgentTransaction, AccountAuthenticator };
 export { EntryFunctionArgumentTypes };
 
-export type NamedAddresses = { [named_address: string]: AccountAddress };
+export type NamedAddresses = Record<string, AccountAddress>;
 
 export type OrmFieldCommonMoveType =
   | 'address'
@@ -273,6 +273,7 @@ export type OrmPackageConfig = {
   dependencies?: { name: string; git: string; subdir: string; rev: string }[]; // dependencies of the package
   local_apto_orm_package?: string; // path to local package
   modules_publish_order?: string[]; // modules publish order
+  std_revision?: string;
 };
 
 /**

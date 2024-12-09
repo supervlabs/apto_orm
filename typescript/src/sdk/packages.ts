@@ -1,12 +1,12 @@
-import { MoveFunctionId, AccountAddressInput, Hex, Account } from '@aptos-labs/ts-sdk';
-import { OrmPackageConfig, OrmTxn, OrmTxnOptions } from './types';
 import { execSync } from 'child_process';
+import { MoveFunctionId, AccountAddressInput, Hex, Account, AccountAddress } from '@aptos-labs/ts-sdk';
+import { OrmPackageConfig, OrmTxn, OrmTxnOptions } from './types';
 import { retrieveFilesInDir, snakeToCamel, getPackageAddress } from './utilities';
 import path from 'path';
 import fs from 'fs';
 import { OrmClient } from './client';
 import { generateMove } from './gen-move';
-import { generateToml } from './gen-toml';
+import { generateMoveTomlFile } from './gen-toml';
 import { getOrmClassMetadata } from './metadata';
 
 const MAXIMUM_TRANSACTION_SIZE = 40000;
@@ -129,7 +129,40 @@ export async function mayCreateAndPublishPackageTxn(
   }
 }
 
-export function compilePackage(config: Pick<OrmPackageConfig, 'package_move_path' | 'named_addresses'>) {
+function parseNamedAddresses(namedAddresses: Record<string, AccountAddress>): Map<string, AccountAddress> {
+  const addressesMap = new Map();
+  if (!namedAddresses) return addressesMap;
+
+  Object.keys(namedAddresses).forEach((key) => {
+    const address = namedAddresses[key];
+    addressesMap.set(key, address);
+  });
+
+  return addressesMap;
+}
+
+function prepareNamedAddresses(namedAddresses: Map<string, AccountAddress>): Array<string> {
+  const totalNames = namedAddresses.size;
+  const newArgs: Array<string> = [];
+
+  if (totalNames === 0) {
+    return newArgs;
+  }
+
+  newArgs.push('--named-addresses');
+
+  const names: Array<string> = [];
+  namedAddresses.forEach((value, key) => {
+    const toAppend = `${key}=${value.toString()}`;
+    names.push(toAppend);
+  });
+  newArgs.push(names.join(','));
+  return newArgs;
+}
+
+export function compilePackage(
+  config: Pick<OrmPackageConfig, 'package_move_path' | 'named_addresses'> & { show_stdout?: boolean }
+) {
   const { package_move_path, named_addresses } = config;
   if (!package_move_path) {
     throw new Error('package_move_path is required');
@@ -141,11 +174,12 @@ export function compilePackage(config: Pick<OrmPackageConfig, 'package_move_path
       'install aptos-cli through the command `curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3`'
     );
   }
-  let command = `cd ${package_move_path} && aptos move compile --move-2 --save-metadata`;
-  const address = Object.entries(named_addresses || {}).map(([name, addr]) => `${name}=${addr}`);
-  if (address.length > 0) command = command + ` --named-addresses ${address.join(',')}`;
+  const cliArgs = ['aptos', 'move', 'compile', '--move-2', '--save-metadata', '--package-dir', package_move_path];
+  const addressesMap = parseNamedAddresses(named_addresses);
+  cliArgs.push(...prepareNamedAddresses(addressesMap));
   try {
-    execSync(command, { timeout: 40000 });
+    console.log(cliArgs.join(' '));
+    execSync(cliArgs.join(' '), { timeout: 40000, stdio: ['pipe', process.stdout, process.stderr] });
   } catch (err) {
     console.log(err.stdout.toString()); // err.stderr.toString()
     throw new Error(err.stdout.toString());
@@ -164,11 +198,12 @@ export function testPackage(config: Pick<OrmPackageConfig, 'package_move_path' |
       'install aptos-cli through the command `curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3`'
     );
   }
-  let command = `cd ${package_move_path} && aptos move test --move-2`;
-  const address = Object.entries(named_addresses || {}).map(([name, addr]) => `${name}=${addr}`);
-  if (address.length > 0) command = command + ` --named-addresses ${address.join(',')}`;
+  const cliArgs = ['aptos', 'move', 'test', '--move-2', '--package-dir', package_move_path];
+  const addressesMap = parseNamedAddresses(named_addresses);
+  cliArgs.push(...prepareNamedAddresses(addressesMap));
   try {
-    execSync(command, { timeout: 40000 });
+    console.log(cliArgs.join(' '));
+    execSync(cliArgs.join(' '), { timeout: 40000, stdio: ['pipe', process.stdout, process.stderr] });
   } catch (err) {
     console.log(err.stdout.toString()); // err.stderr.toString()
     throw new Error(err.stdout.toString());
@@ -184,6 +219,7 @@ export function generatePackage(config: OrmPackageConfig) {
     dependencies,
     ormobjs,
     local_apto_orm_package,
+    std_revision,
   } = config;
   if (!package_creator) {
     throw new Error('package_creator is required');
@@ -198,15 +234,16 @@ export function generatePackage(config: OrmPackageConfig) {
     throw new Error('package_name should not include `-`');
   }
   const package_address = getPackageAddress(package_creator, package_name);
-  generateToml(
+  generateMoveTomlFile({
     package_move_path,
     package_creator,
     package_name,
     package_address,
     local_apto_orm_package,
     dependencies,
-    named_addresses
-  );
+    named_addresses,
+    std_revision,
+  });
   for (const o of ormobjs) {
     const classdata = getOrmClassMetadata(o);
     classdata.named_addresses = {
