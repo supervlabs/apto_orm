@@ -177,13 +177,8 @@ export function compilePackage(
   const cliArgs = ['aptos', 'move', 'compile', '--move-2', '--save-metadata', '--package-dir', package_move_path];
   const addressesMap = parseNamedAddresses(named_addresses);
   cliArgs.push(...prepareNamedAddresses(addressesMap));
-  try {
-    console.log(cliArgs.join(' '));
-    execSync(cliArgs.join(' '), { timeout: 40000, stdio: ['pipe', process.stdout, process.stderr] });
-  } catch (err) {
-    console.log(err.stdout.toString()); // err.stderr.toString()
-    throw new Error(err.stdout.toString());
-  }
+  console.log(cliArgs.join(' '));
+  execSync(cliArgs.join(' '), { timeout: 40000, stdio: ['pipe', process.stdout, process.stderr] });
 }
 
 export function testPackage(config: Pick<OrmPackageConfig, 'package_move_path' | 'named_addresses'>) {
@@ -201,13 +196,8 @@ export function testPackage(config: Pick<OrmPackageConfig, 'package_move_path' |
   const cliArgs = ['aptos', 'move', 'test', '--move-2', '--package-dir', package_move_path];
   const addressesMap = parseNamedAddresses(named_addresses);
   cliArgs.push(...prepareNamedAddresses(addressesMap));
-  try {
-    console.log(cliArgs.join(' '));
-    execSync(cliArgs.join(' '), { timeout: 40000, stdio: ['pipe', process.stdout, process.stderr] });
-  } catch (err) {
-    console.log(err.stdout.toString()); // err.stderr.toString()
-    throw new Error(err.stdout.toString());
-  }
+  console.log(cliArgs.join(' '));
+  execSync(cliArgs.join(' '), { timeout: 40000, stdio: ['pipe', process.stdout, process.stderr] });
 }
 
 export function generatePackage(config: OrmPackageConfig) {
