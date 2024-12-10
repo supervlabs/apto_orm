@@ -20,7 +20,7 @@ export function generateMoveTomlFile(args: {
   local_apto_orm_package?: string;
   dependencies?: { name: string; git: string; subdir: string; rev: string }[];
   named_addresses?: NamedAddresses;
-  std_revision?: string;
+  std_revision?: 'mainnet' | 'testnet' | 'devnet' | 'main';
 }) {
   const {
     package_move_path,
