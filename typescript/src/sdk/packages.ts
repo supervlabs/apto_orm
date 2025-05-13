@@ -174,7 +174,7 @@ export function compilePackage(
       'install aptos-cli through the command `curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3`'
     );
   }
-  const cliArgs = ['aptos', 'move', 'compile', '--move-2', '--save-metadata', '--package-dir', package_move_path];
+  const cliArgs = ['aptos', 'move', 'compile', '--save-metadata', '--package-dir', package_move_path];
   const addressesMap = parseNamedAddresses(named_addresses);
   cliArgs.push(...prepareNamedAddresses(addressesMap));
   console.log(cliArgs.join(' '));
@@ -193,7 +193,7 @@ export function testPackage(config: Pick<OrmPackageConfig, 'package_move_path' |
       'install aptos-cli through the command `curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3`'
     );
   }
-  const cliArgs = ['aptos', 'move', 'test', '--move-2', '--package-dir', package_move_path];
+  const cliArgs = ['aptos', 'move', 'test', '--package-dir', package_move_path];
   const addressesMap = parseNamedAddresses(named_addresses);
   cliArgs.push(...prepareNamedAddresses(addressesMap));
   console.log(cliArgs.join(' '));
